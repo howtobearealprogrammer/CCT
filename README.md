@@ -151,12 +151,56 @@ The `tool_parameters` field is more reliable for detecting specific outcomes (e.
 
 ## Dashboards
 
-Two dashboards are auto-provisioned on startup in the "Claude Code" folder.
+Three dashboards are auto-provisioned on startup in the "Claude Code" folder.
 
 | Dashboard | File | Purpose |
 |-----------|------|---------|
-| **Claude Code Telemetry v2** | `claude-code-dashboard-v2.json` | Refined layout optimized for 1920x1080 — set as **home dashboard** |
+| **Claude Code Telemetry v3** | `claude-code-dashboard-v3.json` | Magazine-style layout with vibrant gradients — optimized for screenshots |
+| Claude Code Telemetry v2 | `claude-code-dashboard-v2.json` | Refined layout, set as **home dashboard** |
 | Claude Code Telemetry | `claude-code-dashboard.json` | Original v1 dashboard kept as a "starting point" reference |
+
+### v3 Layout (magazine-style, fits 1920x1080)
+
+Default time range: **1 hour**. Auto-refresh: **30 seconds**.
+
+**Design philosophy:** Magazine-style layout where time series charts (2/3 width) pair with related donut breakdowns (1/3 width). Color continuity across stats, charts, and donuts — each metric's color carries through all its panels. Gradient scheme fills (`gradientMode: "scheme"`) for rich, vibrant area charts. Legends hidden on time series (the paired donuts serve as legends). Designed for screenshot impact at LinkedIn scale.
+
+**Stats** (y:0, h:3) — 4 transparent stat panels with colored text and sparklines
+
+| Panel | Color | Notes |
+|-------|-------|-------|
+| Total Tokens | `#5794F2` blue | Prometheus |
+| Lines of Code | `#73BF69` green | Prometheus |
+| Active Time | `#B877D9` purple | Prometheus, unit: seconds |
+| Commits | `#FF9830` amber | Loki (git_commit_id extraction) |
+
+**Token Story** (y:3, h:8) — time series + 2 stacked donuts
+
+| Panel | Position | Notes |
+|-------|----------|-------|
+| Token Usage Over Time | w:16, h:8 | Stacked area, color overrides match stat colors, legend hidden |
+| Token Usage by Type | w:8, h:4 | Donut, right legend with percentages |
+| Tokens by Model | w:8, h:4 | Donut, model-specific color overrides (opus=purple, sonnet=blue, haiku=teal) |
+
+**Tool Story** (y:11, h:8) — time series + 2 stacked donuts
+
+| Panel | Position | Notes |
+|-------|----------|-------|
+| Tool Calls Over Time | w:16, h:8 | Stacked area, palette-classic, legend hidden |
+| Tool Distribution | w:8, h:4 | Donut, right legend with percentages |
+| Tool Decision Sources | w:8, h:4 | Donut, color overrides (config=blue, user_temporary=amber, user_permanent=green) |
+
+**Agent & MCP** (y:19, h:5) — 3 equal panels
+
+| Panel | Notes |
+|-------|-------|
+| Agent Calls Over Time | Fixed amber color, `sum()` to merge streams, legend hidden |
+| MCP Tool Calls Over Time | Stacked area by `mcp_tool_name`, legend hidden |
+| Agent Types | Donut with right legend (general-purpose=amber, Explore=teal, Plan=purple) |
+
+**Event Log** (y:24, collapsed) — same as v2
+
+Total visible height: 3 + 8 + 8 + 5 + 1 = **25 grid units** (~750px). Fits in a standard 1920x1080 browser window. For best screenshot results, use F11 fullscreen or append `?kiosk` to the URL to remove the Grafana nav bar.
 
 ### v2 Layout (fits 1920x1080)
 
@@ -282,7 +326,8 @@ claude-code-monitoring/
         └── dashboards/
             ├── dashboards.yml                 # Dashboard file provider config
             ├── claude-code-dashboard.json     # v1 — original dashboard
-            └── claude-code-dashboard-v2.json  # v2 — refined layout (home dashboard)
+            ├── claude-code-dashboard-v2.json  # v2 — refined layout (home dashboard)
+            └── claude-code-dashboard-v3.json  # v3 — magazine-style with vibrant gradients
 ```
 
 ## OTel Collector Pipeline
