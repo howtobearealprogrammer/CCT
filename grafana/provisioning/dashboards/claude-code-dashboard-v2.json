@@ -131,7 +131,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"Bash\" | line_format `{{.tool_parameters}}` | json git_commit_id=\"git_commit_id\" | git_commit_id != \"\" [$__range])",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"Bash\" | line_format `{{.tool_parameters}}` | json git_commit_id=\"git_commit_id\" | git_commit_id != \"\" [$__range]))",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A"
