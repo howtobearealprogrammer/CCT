@@ -104,7 +104,7 @@ These env vars only take effect for Claude Code sessions started **after** the s
 
 Claude Code emits these metrics via OpenTelemetry. The OTel Collector's Prometheus exporter converts dots to underscores in metric names.
 
-### Counter Metrics
+### Counter Metrics (Prometheus)
 
 | OTel Name | Prometheus Name | Description | Key Attributes |
 |-----------|----------------|-------------|----------------|
@@ -117,6 +117,8 @@ Claude Code emits these metrics via OpenTelemetry. The OTel Collector's Promethe
 | `claude_code.active_time.total` | `claude_code_active_time_total_seconds_total` | Active time in seconds | `type` (user, cli) |
 | `claude_code.code_edit_tool.decision` | `claude_code_code_edit_tool_decision_total` | Tool permission decisions | `tool_name`, `decision`, `source` |
 
+**Note on `commit.count`:** The Prometheus counter `claude_code_commit_count_total` only increments through Claude Code's internal commit tracking, which does not fire for commits made via the Bash tool (`git commit`). Since all commits in this workflow are made through Bash, the v2 dashboard uses a Loki-based query instead (see [Commits Panel](#commits-panel-loki-based)).
+
 ### Event Logs (via OTLP logs pipeline → Loki)
 
 These are stored in Loki and queryable in Grafana. OTLP resource attributes (e.g., `service_name`) become stream labels; log record attributes (e.g., `tool_name`, `success`, `duration_ms`) become **structured metadata** and must be queried with the filter pipeline (`| event_name="tool_result"`) rather than label matchers:
@@ -124,12 +126,21 @@ These are stored in Loki and queryable in Grafana. OTLP resource attributes (e.g
 | Event | Description | Key Fields |
 |-------|-------------|------------|
 | `claude_code.user_prompt` | User prompt submitted | `prompt_length` |
-| `claude_code.tool_result` | Tool execution completed | `tool_name`, `success`, `duration_ms` |
+| `claude_code.tool_result` | Tool execution completed | `tool_name`, `success`, `duration_ms`, `tool_input`, `tool_parameters` |
 | `claude_code.api_request` | API call to Claude | `model`, `cost_usd`, `duration_ms`, token counts |
 | `claude_code.api_error` | API call failed | `error`, `status_code`, `duration_ms` |
 | `claude_code.tool_decision` | Tool permission decision | `tool_name`, `decision`, `source` |
 
-### Standard Attributes on All Metrics
+### Important: `tool_input` vs `tool_parameters`
+
+Both are JSON strings on `tool_result` events, but serve different purposes:
+
+- **`tool_input`** — the arguments Claude passed to the tool (e.g., `{"command":"git commit ...", "description":"Create initial commit"}`)
+- **`tool_parameters`** — enriched metadata added by Claude Code itself, including derived fields like `bash_command`, `full_command`, `git_commit_id`, etc.
+
+The `tool_parameters` field is more reliable for detecting specific outcomes (e.g., whether a Bash command was a git commit) because Claude Code populates it with structured data. The `tool_input` field is better for understanding intent (e.g., extracting `subagent_type` from Agent tool calls).
+
+### Standard Attributes on All Events
 
 - `session.id` — unique per CLI session
 - `organization.id` — Anthropic org
@@ -140,30 +151,35 @@ These are stored in Loki and queryable in Grafana. OTLP resource attributes (e.g
 
 ## Dashboards
 
-Two dashboards are auto-provisioned on startup in the "Claude Code" folder. Both share the same queries and data sources.
+Two dashboards are auto-provisioned on startup in the "Claude Code" folder.
 
 | Dashboard | File | Purpose |
 |-----------|------|---------|
 | **Claude Code Telemetry v2** | `claude-code-dashboard-v2.json` | Refined layout optimized for 1920x1080 — set as **home dashboard** |
-| Claude Code Telemetry | `claude-code-dashboard.json` | Original dashboard kept as reference |
+| Claude Code Telemetry | `claude-code-dashboard.json` | Original v1 dashboard kept as a "starting point" reference |
 
 ### v2 Layout (fits 1920x1080)
 
-**Stats** — 4 transparent stat panels with colored text (no solid backgrounds)
-| Panel | Source | Color |
-|-------|--------|-------|
-| Total Tokens | Prometheus | `#5794F2` blue |
-| Lines of Code | Prometheus | `#73BF69` green |
-| Commits | Prometheus | `#FF9830` amber |
-| Active Time | Prometheus | `#B877D9` purple |
+Default time range: **1 hour**. Auto-refresh: **30 seconds**.
 
-**Trends** — 2 time series panels side by side
+**Stats** (y:0, h:4) — 4 transparent stat panels with colored text, no solid backgrounds
+
+| Panel | Source | Color | Query |
+|-------|--------|-------|-------|
+| Total Tokens | Prometheus | `#5794F2` blue | `sum(increase(claude_code_token_usage_tokens_total[$__range]))` |
+| Lines of Code | Prometheus | `#73BF69` green | `sum(increase(claude_code_lines_of_code_count_total[$__range]))` |
+| Commits | Loki | `#FF9830` amber | See [Commits Panel](#commits-panel-loki-based) below |
+| Active Time | Prometheus | `#B877D9` purple | `sum(increase(claude_code_active_time_seconds_total[$__range]))` |
+
+**Trends** (y:4, h:8) — 2 time series panels side by side
+
 | Panel | Source | Notes |
 |-------|--------|-------|
 | Token Usage Over Time | Prometheus | Stacked area, opacity gradient, uses `$interval` variable |
 | Tool Calls Over Time | Loki | Stacked bars broken down by `tool_name` |
 
-**Breakdowns** — 4 donut charts with compact bottom legends
+**Breakdowns** (y:12, h:8) — 4 donut charts with compact bottom legends
+
 | Panel | Source | Notes |
 |-------|--------|-------|
 | Token Usage by Type | Prometheus | input, output, cacheRead, cacheCreation |
@@ -171,18 +187,57 @@ Two dashboards are auto-provisioned on startup in the "Claude Code" folder. Both
 | Tool Distribution | Loki | Which tools are used most frequently |
 | Tool Decision Sources | Loki | config, user_permanent, user_temporary — uses `source` field |
 
-**Agent Use** — 3 panels tracking Agent tool behavior
+**Agent Use** (y:20, h:8) — 3 panels tracking Agent tool behavior
+
 | Panel | Source | Notes |
 |-------|--------|-------|
 | Agent Calls Over Time | Loki | Bar chart of Agent tool invocations |
 | Agent Duration | Loki | Avg and max duration via `unwrap duration_ms` |
 | Agent Types | Loki | Donut of `subagent_type` extracted from `tool_input` via regexp |
 
-**Event Log** — collapsed row (click to expand)
+**Event Log** (y:28, collapsed) — click row header to expand
+
 | Panel | Source | Notes |
 |-------|--------|-------|
 | All Events Over Time | Loki | Stacked bar chart of all event types |
 | Event Stream | Loki | Live scrolling log with formatted output |
+
+### Commits Panel (Loki-based)
+
+The Commits stat panel uses Loki instead of Prometheus because the Prometheus counter `claude_code_commit_count_total` does not fire for commits made via the Bash tool. The query detects commits by extracting the `git_commit_id` field from `tool_parameters`:
+
+```
+count_over_time(
+  {service_name="claude-code"}
+  | event_name="tool_result"
+  | tool_name="Bash"
+  | line_format `{{.tool_parameters}}`
+  | json git_commit_id="git_commit_id"
+  | git_commit_id != ""
+  [$__range]
+)
+```
+
+This works because Claude Code enriches Bash `tool_parameters` with a `git_commit_id` field (containing the short SHA) whenever a `git commit` command succeeds. The `json` parser extracts this as a top-level key, ignoring any Bash commands that merely mention "git_commit_id" as text in the command body.
+
+**Important:** This panel uses `queryType: "instant"` with `calcs: ["lastNotNull"]`, not `queryType: "range"` with `calcs: ["sum"]`. See [Lessons Learned](#loki-stat-panels-must-use-instant-queries) for why.
+
+### Agent Types Panel (regexp extraction)
+
+The Agent Types donut extracts `subagent_type` from the `tool_input` JSON string using `line_format` + `regexp`:
+
+```
+sum by (subagent_type) (count_over_time(
+  {service_name="claude-code"}
+  | event_name="tool_result"
+  | tool_name="Agent"
+  | line_format `{{.tool_input}}`
+  | regexp `subagent_type.{3}(?P<subagent_type>[a-zA-Z][a-zA-Z0-9_-]+)`
+  [$__range]
+))
+```
+
+This is necessary because `subagent_type` is nested inside the `tool_input` JSON string, not a top-level structured metadata field. The `.{3}` matches the `":"` separator between the JSON key and value.
 
 ### Dashboard Variables
 
@@ -190,12 +245,27 @@ Two dashboards are auto-provisioned on startup in the "Claude Code" folder. Both
 |----------|---------|---------|
 | `$interval` | Rate window for time series panels | 5m (options: 1m, 5m, 15m, 30m, 1h, auto) |
 
-Both dashboards auto-refresh every 15 seconds and default to a 6-hour time window.
+### v1 vs v2 Style Differences
+
+| Element | v1 (original) | v2 (refined) |
+|---------|---------------|--------------|
+| Stat colorMode | `background_solid` (garish) | `value` (colored text only) |
+| Stat panels | Opaque colored backgrounds | `transparent: true` |
+| Color palette | Mismatched purple/orange/blue/green | Cohesive `#5794F2`/`#73BF69`/`#FF9830`/`#B877D9` |
+| Row headers | 5 explicit row panels | None (except collapsed Event Log) |
+| Time series fill | `fillOpacity: 30`, `gradientMode: "scheme"` | `fillOpacity: 15`, `gradientMode: "opacity"` |
+| Legends | `displayMode: "table"` at various positions | `displayMode: "list"`, `placement: "bottom"` everywhere |
+| Donut legends | Table with value + percent at right | List with percent only at bottom |
+| Commits source | Prometheus (broken for Bash commits) | Loki (detects via `git_commit_id` in `tool_parameters`) |
+| Event Log | Always visible (h:20) | Collapsed row (click to expand) |
+| Default time range | 6 hours | 1 hour |
+| Auto-refresh | 15 seconds | 30 seconds |
 
 ## File Structure
 
 ```
 claude-code-monitoring/
+├── .gitignore                         # Excludes .claude/ directory
 ├── docker-compose.yml                 # Service definitions and volumes
 ├── otel-collector-config.yaml         # OTLP receivers, processors, exporters
 ├── prometheus.yml                     # Scrape targets and intervals
@@ -226,6 +296,75 @@ OTLP (HTTP)         batch                   otlphttp/loki (logs → Loki :3100/o
 - **otlphttp/loki exporter**: Sends OTLP logs to Loki's native OTLP ingestion endpoint; resource attributes become stream labels, log record attributes become structured metadata
 - **debug exporter**: Logs all received telemetry to stdout for troubleshooting (`docker compose logs otel-collector`)
 
+## Lessons Learned
+
+Hard-won knowledge from building and iterating on this stack. These are specific to Grafana + Loki + Prometheus in this configuration and are critical for future development.
+
+### Loki structured metadata fields are NOT stream labels
+
+Event attributes like `event_name`, `tool_name`, `success`, `duration_ms`, and `source` are stored as **structured metadata** in Loki, not as stream labels. You **cannot** use them in label matchers:
+
+```
+# WRONG — returns empty results
+{event_name="tool_result"}
+
+# CORRECT — filter in the pipeline
+{service_name="claude-code"} | event_name="tool_result"
+```
+
+### Loki pie charts must use `queryType: "range"`, not `"instant"`
+
+When using `sum by (label) (count_over_time(...))` queries in Grafana pie/donut charts with a Loki datasource, `queryType: "instant"` causes the legend to show **"Value #A"** instead of the actual label name. Switching to `queryType: "range"` fixes this — Grafana then correctly resolves `{{label}}` in `legendFormat`.
+
+This affected the Tool Distribution, Tool Decision Sources, and Agent Types panels.
+
+### Loki stat panels must use instant queries
+
+The inverse of the pie chart rule. For stat panels showing a single aggregated count from Loki (`count_over_time(... [$__range])`), use `queryType: "instant"` with `calcs: ["lastNotNull"]`.
+
+Using `queryType: "range"` with `calcs: ["sum"]` causes Grafana to evaluate the query at multiple time steps across the range, then sum all the results together — massively inflating the displayed number. For example, 1 commit was displayed as 55 because Grafana evaluated the "1 commit in the last hour" query 55 times and summed the results.
+
+### The `tool_decision` event uses `source`, not `decision_source`
+
+The field name for how a tool permission was granted is `source` (values: `config`, `user_permanent`, `user_temporary`), not `decision_source` as might be assumed from the Prometheus metric name `claude_code_code_edit_tool_decision_total` which has a `source` attribute. Always verify Loki field names by querying actual events:
+
+```bash
+curl -s "http://localhost:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={service_name="claude-code"} | event_name="tool_decision"' \
+  --data-urlencode 'limit=1' --data-urlencode 'start=...' --data-urlencode 'end=...'
+```
+
+### Extracting nested JSON fields from Loki structured metadata
+
+Fields like `subagent_type` (inside `tool_input`) and `git_commit_id` (inside `tool_parameters`) are nested within JSON strings stored as structured metadata. To extract them:
+
+1. **`line_format`** — replace the log line with the metadata field content: `| line_format "{{.tool_parameters}}"`
+2. **`json` parser** — extract the nested key: `| json git_commit_id="git_commit_id"`
+3. **Filter** — `| git_commit_id != ""`
+
+The `json` parser only extracts **top-level keys** from the current log line. This is critical for avoiding false positives — a Bash command that mentions "git_commit_id" as text in its command body won't match because the text is nested inside the `full_command` string value, not a top-level JSON key.
+
+For cases where you need a named capture group (e.g., `subagent_type` for `sum by`), use `regexp` instead of `json`:
+```
+| line_format `{{.tool_input}}`
+| regexp `subagent_type.{3}(?P<subagent_type>[a-zA-Z][a-zA-Z0-9_-]+)`
+```
+
+### Avoid regex quantifier braces `{n}` in Grafana dashboard JSON
+
+Grafana's template variable engine interprets `{` and `}` as variable delimiters. A regex like `[0-9a-f]{7}` in a LogQL query stored in dashboard JSON will be mangled. Workarounds:
+- Repeat the character class manually: `[0-9a-f][0-9a-f][0-9a-f]...`
+- Use `.{3}` only when Grafana doesn't try to resolve it (backtick-delimited strings in some contexts)
+- Prefer the `json` parser approach over regex when possible
+
+### Prometheus counter metrics may not fire for Bash tool actions
+
+Claude Code's Prometheus counters (like `claude_code_commit_count_total`) are incremented through internal tracking paths, not by observing Bash tool output. Since all git operations in this workflow go through the Bash tool, the Prometheus commit counter stays at zero. The solution is to query Loki's `tool_result` events and inspect `tool_parameters` for enriched fields like `git_commit_id` that Claude Code adds automatically.
+
+### Dashboard height budget for 1920x1080
+
+Grafana's chrome (top nav bar + dashboard toolbar) consumes ~92px. At ~30px per grid unit, the usable panel area is approximately **32 grid units**. The v2 dashboard uses 29 visible units (stats h:4 + trends h:8 + breakdowns h:8 + agent h:8 + collapsed row h:1), leaving a small margin. Panels with many legend entries (e.g., Tool Distribution with 12+ tools) can push content below the fold due to legend wrapping.
+
 ## Troubleshooting
 
 **No metrics appearing in Grafana:**
@@ -249,7 +388,16 @@ OTLP (HTTP)         batch                   otlphttp/loki (logs → Loki :3100/o
 
 **Dashboard not loading:**
 - Check Grafana logs: `docker compose logs grafana`
-- Verify the dashboard JSON is mounted: the file at `grafana/provisioning/dashboards/claude-code-dashboard.json` is mounted to `/var/lib/grafana/dashboards/` inside the container
+- Verify dashboard JSON files are mounted: both files in `grafana/provisioning/dashboards/` should be mounted to `/var/lib/grafana/dashboards/` inside the container
+
+**Verifying Loki field names on events:**
+```bash
+# See all fields on a specific event type
+now=$(date +%s); start=$((now - 3600))
+curl -s "http://localhost:3100/loki/api/v1/query_range?start=${start}&end=${now}&limit=1" \
+  --data-urlencode 'query={service_name="claude-code"} | event_name="tool_result"' \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print(json.dumps(d['data']['result'][0]['stream'], indent=2))"
+```
 
 ## Resource Usage
 

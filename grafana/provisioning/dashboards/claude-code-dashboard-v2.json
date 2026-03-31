@@ -102,7 +102,7 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "loki", "uid": "loki" },
       "fieldConfig": {
         "defaults": {
           "color": { "fixedColor": "#FF9830", "mode": "fixed" },
@@ -129,12 +129,11 @@
       "pluginVersion": "11.6.0",
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "sum(increase(claude_code_commit_count_total[$__range]))",
-          "instant": false,
+          "expr": "count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"Bash\" | line_format `{{.tool_parameters}}` | json git_commit_id=\"git_commit_id\" | git_commit_id != \"\" [$__range])",
           "legendFormat": "",
-          "range": true,
+          "queryType": "instant",
           "refId": "A"
         }
       ],
