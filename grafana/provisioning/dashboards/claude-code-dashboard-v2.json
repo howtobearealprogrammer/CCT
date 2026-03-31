@@ -115,14 +115,14 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
       "id": 3,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
         "textMode": "auto",
         "wideLayout": true
       },
@@ -131,9 +131,9 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"Bash\" | line_format `{{.tool_parameters}}` | json git_commit_id=\"git_commit_id\" | git_commit_id != \"\" [$__range]))",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"Bash\" | line_format `{{.tool_parameters}}` | json git_commit_id=\"git_commit_id\" | git_commit_id != \"\" [$__auto]))",
           "legendFormat": "",
-          "queryType": "instant",
+          "queryType": "range",
           "refId": "A"
         }
       ],
@@ -155,7 +155,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
       "id": 4,
       "options": {
         "colorMode": "value",
@@ -250,16 +250,16 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "drawStyle": "bars",
-            "fillOpacity": 80,
+            "drawStyle": "line",
+            "fillOpacity": 15,
             "gradientMode": "opacity",
             "hideFrom": { "legend": false, "tooltip": false, "vis": false },
             "insertNulls": false,
             "lineInterpolation": "smooth",
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": { "type": "linear" },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": true,
             "stacking": { "group": "A", "mode": "normal" },
             "thresholdsStyle": { "mode": "off" }
@@ -447,16 +447,16 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "drawStyle": "bars",
-            "fillOpacity": 80,
+            "drawStyle": "line",
+            "fillOpacity": 15,
             "gradientMode": "opacity",
             "hideFrom": { "legend": false, "tooltip": false, "vis": false },
             "insertNulls": false,
             "lineInterpolation": "smooth",
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": { "type": "linear" },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": true,
             "stacking": { "group": "A", "mode": "none" },
             "thresholdsStyle": { "mode": "off" }
@@ -513,7 +513,7 @@
             "scaleDistribution": { "type": "linear" },
             "showPoints": "auto",
             "spanNulls": true,
-            "stacking": { "group": "A", "mode": "none" },
+            "stacking": { "group": "A", "mode": "normal" },
             "thresholdsStyle": { "mode": "off" }
           },
           "mappings": [],
@@ -521,7 +521,7 @@
             "mode": "absolute",
             "steps": [{ "color": "green", "value": null }]
           },
-          "unit": "ms"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -536,22 +536,13 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "avg_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"Agent\" | unwrap duration_ms [$__auto])",
-          "legendFormat": "avg duration",
+          "expr": "sum by (mcp_tool_name) (count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"mcp_tool\" | line_format `{{.tool_parameters}}` | json mcp_tool_name=\"mcp_tool_name\" [$__auto]))",
+          "legendFormat": "{{mcp_tool_name}}",
           "queryType": "range",
           "refId": "A"
-        },
-        {
-          "datasource": { "type": "loki", "uid": "loki" },
-          "editorMode": "code",
-          "expr": "max_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"Agent\" | unwrap duration_ms [$__auto])",
-          "legendFormat": "max duration",
-          "queryType": "range",
-          "refId": "B",
-          "hide": false
         }
       ],
-      "title": "Agent Duration",
+      "title": "MCP Tool Calls Over Time",
       "type": "timeseries"
     },
     {
