@@ -561,10 +561,10 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 21 },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 21 },
       "id": 11,
       "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
         "tooltip": { "mode": "multi", "sort": "desc" }
       },
       "pluginVersion": "11.6.0",
@@ -572,7 +572,7 @@
         {
           "datasource": { "type": "loki", "uid": "loki" },
           "editorMode": "code",
-          "expr": "count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"Agent\" [$__auto])",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"Agent\" [$__auto]))",
           "legendFormat": "Agent calls",
           "queryType": "range",
           "refId": "A"
@@ -617,10 +617,10 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 21 },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 21 },
       "id": 12,
       "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
         "tooltip": { "mode": "multi", "sort": "desc" }
       },
       "pluginVersion": "11.6.0",
@@ -669,7 +669,7 @@
           }
         ]
       },
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 21 },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 21 },
       "id": 13,
       "options": {
         "legend": { "displayMode": "list", "placement": "right", "showLegend": true, "values": ["percent"] },
@@ -693,7 +693,7 @@
     },
     {
       "collapsed": true,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
       "id": 14,
       "title": "Event Log",
       "type": "row",
@@ -733,7 +733,7 @@
             },
             "overrides": []
           },
-          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 29 },
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 28 },
           "id": 15,
           "options": {
             "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
@@ -755,7 +755,7 @@
         },
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 35 },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 34 },
           "id": 16,
           "options": {
             "dedupStrategy": "none",

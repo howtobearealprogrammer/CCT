@@ -52,6 +52,7 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/provisioning/dashboards/claude-code-dashboard.json:/var/lib/grafana/dashboards/claude-code-dashboard.json:ro
       - ./grafana/provisioning/dashboards/claude-code-dashboard-v2.json:/var/lib/grafana/dashboards/claude-code-dashboard-v2.json:ro
+      - ./grafana/provisioning/dashboards/claude-code-dashboard-v3.json:/var/lib/grafana/dashboards/claude-code-dashboard-v3.json:ro
     ports:
       - "3001:3001"
     depends_on:
