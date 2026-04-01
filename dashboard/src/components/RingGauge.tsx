@@ -81,7 +81,7 @@ export default function RingGauge({
     ],
     legend: {
       orient: "vertical" as const,
-      right: 0,
+      right: 10,
       top: "center",
       icon: "circle",
       itemWidth: 8,
