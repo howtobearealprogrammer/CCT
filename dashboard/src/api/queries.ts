@@ -96,7 +96,7 @@ export async function fetchDashboardData(
       start, end, step
     ),
     lokiQueryRange(
-      `sum by (subagent_type)(count_over_time(${SERVICE} | event_name="tool_result" | tool_name="Agent" | line_format \`{{.tool_input}}\` | regexp \`subagent_type.{3}(?P<subagent_type>[a-zA-Z][a-zA-Z0-9_-]+)\` [${range}]))`,
+      `sum by (subagent_type)(count_over_time(${SERVICE} | event_name="tool_result" | tool_name="Agent" | line_format \`{{.tool_input}}\` | json subagent_type="subagent_type" | subagent_type != "" [${range}]))`,
       start, end, step
     ),
     lokiQueryRange(
