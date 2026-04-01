@@ -38,14 +38,13 @@ export default function StatCard({ label, value, suffix, color, sparklineData }:
 
   return (
     <div
-      className="rounded-[10px] relative overflow-hidden"
+      className="rounded-[10px] px-4 py-3 flex items-center gap-3"
       style={{
         background: `linear-gradient(135deg, ${color}1F 0%, ${color}0A 100%)`,
         border: `1px solid ${color}26`,
       }}
     >
-      {/* Text overlay */}
-      <div className="relative z-10 px-4 py-3">
+      <div className="shrink-0">
         <div className="text-[10px] uppercase tracking-[1px] text-[#5a6a7a] mb-1.5">
           {label}
         </div>
@@ -56,8 +55,8 @@ export default function StatCard({ label, value, suffix, color, sparklineData }:
           )}
         </div>
       </div>
-      {/* Sparkline fills the entire card */}
-      <div className="absolute inset-0 z-0">
+      {/* Sparkline fills remaining space */}
+      <div className="flex-1 min-w-0 h-full self-stretch">
         <ReactECharts
           option={sparkOption}
           style={{ height: "100%", width: "100%" }}
