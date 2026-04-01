@@ -49,6 +49,7 @@ export async function fetchDashboardData(
   step: number
 ): Promise<DashboardData> {
   const range = `${end - start}s`;
+  const sparseStep = Math.max(step * 5, 300);
 
   const [
     tokensByType,
@@ -60,6 +61,7 @@ export async function fetchDashboardData(
     agentCalls,
     mcpToolCalls,
     agentTypes,
+    totalAgentCalls,
     commits,
     userPromptTimestamps,
   ] = await Promise.all([
@@ -88,7 +90,7 @@ export async function fetchDashboardData(
       start, end, step
     ),
     lokiQueryRange(
-      `sum(count_over_time(${SERVICE} | event_name="tool_result" | tool_name="Agent" [${step}s]))`,
+      `sum(count_over_time(${SERVICE} | event_name="tool_result" | tool_name="Agent" [${sparseStep}s]))`,
       start, end, step
     ),
     lokiQueryRange(
@@ -100,6 +102,10 @@ export async function fetchDashboardData(
       start, end, step
     ),
     lokiQueryRange(
+      `sum(count_over_time(${SERVICE} | event_name="tool_result" | tool_name="Agent" [${range}]))`,
+      start, end, step
+    ),
+    lokiQueryRange(
       `sum(count_over_time(${SERVICE} | event_name="tool_result" | tool_name="Bash" | line_format \`{{.tool_parameters}}\` | json git_commit_id="git_commit_id" | git_commit_id != "" [${step}s]))`,
       start, end, step
     ),
@@ -108,6 +114,15 @@ export async function fetchDashboardData(
       start, end
     ),
   ]);
+
+  const typedAgentPie = seriesToPie(agentTypes);
+  const typedTotal = typedAgentPie.reduce((s, p) => s + p.value, 0);
+  const totalAgentCount = collapseToSingleSeries(totalAgentCalls).data.reduce((s, p) => s + p.value, 0);
+  const untypedCount = Math.max(0, totalAgentCount - typedTotal);
+  const agentTypePie: PieSlice[] = [
+    ...(untypedCount > 0 ? [{ name: "general-purpose", value: untypedCount }] : []),
+    ...typedAgentPie,
+  ];
 
   const totalTokenSeries = collapseToSingleSeries(tokensByType);
   const linesSeries = collapseToSingleSeries(linesOfCode);
@@ -139,7 +154,7 @@ export async function fetchDashboardData(
     toolDecisions: seriesToPie(toolDecisions),
     agentCallsOverTime: agentCalls,
     mcpToolCallsOverTime: topN(mcpToolCalls, 5),
-    agentTypes: seriesToPie(agentTypes),
+    agentTypes: agentTypePie,
     userPromptTimestamps,
   };
 }
