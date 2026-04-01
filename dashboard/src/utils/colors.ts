@@ -50,8 +50,8 @@ export const AGENT_TYPE_COLORS: Record<string, string> = {
 };
 
 export function colorForModel(model: string): string {
-  if (model.includes("opus")) return MODEL_COLORS.opus;
-  if (model.includes("haiku")) return MODEL_COLORS.haiku;
-  if (model.includes("sonnet")) return MODEL_COLORS.sonnet;
+  if (model.includes("opus")) return MODEL_COLORS.opus!;
+  if (model.includes("haiku")) return MODEL_COLORS.haiku!;
+  if (model.includes("sonnet")) return MODEL_COLORS.sonnet!;
   return COLORS.blue;
 }
