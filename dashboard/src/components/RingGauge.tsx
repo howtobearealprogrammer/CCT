@@ -51,7 +51,7 @@ export default function RingGauge({
     series: [
       {
         type: "pie" as const,
-        radius: ["75%", "90%"],
+        radius: ["75%", "95%"],
         center: ["30%", "50%"],
         avoidLabelOverlap: false,
         itemStyle: { borderWidth: 2, borderColor: "#0a0e17" },
