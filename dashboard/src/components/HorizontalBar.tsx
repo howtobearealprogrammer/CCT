@@ -14,7 +14,7 @@ export default function HorizontalBar({ data, height = "100%" }: HorizontalBarPr
   const option = {
     animation: true,
     animationDuration: 500,
-    grid: { top: 4, right: 40, bottom: 4, left: 60 },
+    grid: { top: 4, right: 40, bottom: 4, left: 90 },
     xAxis: { type: "value" as const, show: false },
     yAxis: {
       type: "category" as const,
@@ -46,7 +46,7 @@ export default function HorizontalBar({ data, height = "100%" }: HorizontalBarPr
             borderRadius: [0, 3, 3, 0],
           },
         })),
-        barWidth: "55%",
+        barMaxWidth: 14,
         label: {
           show: true,
           position: "right" as const,
