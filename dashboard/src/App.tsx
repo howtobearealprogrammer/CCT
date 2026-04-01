@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useTimeRange } from "./hooks/useTimeRange";
 import { useDashboardData } from "./hooks/useDashboardData";
 import TopBar from "./components/TopBar";
@@ -21,6 +21,13 @@ export default function App() {
 
   const stableRefresh = useCallback(refreshQueryParams, [rangeSeconds]);
   const { data, error, lastUpdated } = useDashboardData(stableRefresh, refreshSeconds);
+
+  // Compute time range bounds for x-axis pinning
+  const timeRangeMs = useMemo(() => {
+    const end = Date.now();
+    const start = end - rangeSeconds * 1000;
+    return { start, end };
+  }, [rangeSeconds, lastUpdated]);
 
   const tokens = data ? formatNumber(data.totalTokens.value) : { value: "—", suffix: "" };
   const lines = data ? formatNumber(data.linesOfCode.value) : { value: "—", suffix: "" };
@@ -68,6 +75,7 @@ export default function App() {
             colorMap={TOKEN_TYPE_COLORS}
             markLineTimestamps={data?.userPromptTimestamps}
             markLineLabel="prompt"
+            timeRangeMs={timeRangeMs}
           />
         </ChartCard>
         <div className="grid gap-3 grid-rows-2">
@@ -83,7 +91,7 @@ export default function App() {
       {/* Row 3: Tool Story */}
       <div className="grid gap-3" style={{ gridTemplateColumns: "2fr 1fr" }}>
         <ChartCard title="Tool Calls Over Time">
-          <AreaChart series={data?.toolCallsOverTime ?? []} showLegend={false} />
+          <AreaChart series={data?.toolCallsOverTime ?? []} showLegend={false} timeRangeMs={timeRangeMs} />
         </ChartCard>
         <div className="grid gap-3 grid-rows-2">
           <ChartCard title="Tool Distribution">
@@ -103,10 +111,11 @@ export default function App() {
             colorMap={{ value: COLORS.amber }}
             stacked={false}
             showLegend={false}
+            timeRangeMs={timeRangeMs}
           />
         </ChartCard>
         <ChartCard title="MCP Tool Calls Over Time">
-          <AreaChart series={data?.mcpToolCallsOverTime ?? []} showLegend={false} />
+          <AreaChart series={data?.mcpToolCallsOverTime ?? []} showLegend={false} timeRangeMs={timeRangeMs} />
         </ChartCard>
         <ChartCard title="Agent Types">
           <RingGauge data={data?.agentTypes ?? []} colorMap={AGENT_TYPE_COLORS} />

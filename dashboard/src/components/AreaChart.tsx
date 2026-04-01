@@ -10,6 +10,7 @@ interface AreaChartProps {
   height?: string;
   markLineTimestamps?: number[]; // Unix ms timestamps to show as vertical lines
   markLineLabel?: string;
+  timeRangeMs?: { start: number; end: number }; // Force x-axis bounds
 }
 
 export default function AreaChart({
@@ -20,6 +21,7 @@ export default function AreaChart({
   height = "100%",
   markLineTimestamps,
   markLineLabel = "prompt",
+  timeRangeMs,
 }: AreaChartProps) {
   const option = {
     animation: true,
@@ -38,6 +40,8 @@ export default function AreaChart({
     },
     xAxis: {
       type: "time" as const,
+      min: timeRangeMs?.start,
+      max: timeRangeMs?.end,
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: { color: "#5a6a7a", fontSize: 10 },
