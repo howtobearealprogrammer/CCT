@@ -57,7 +57,7 @@ export default function App() {
         <StatCard label="Total Tokens" value={tokens.value} suffix={tokens.suffix} color={COLORS.blue} sparklineData={data?.totalTokens.series ?? []} />
         <StatCard label="Lines of Code" value={lines.value} suffix={lines.suffix} color={COLORS.green} sparklineData={data?.linesOfCode.series ?? []} />
         <StatCard label="Active Time" value={active.value} suffix={active.suffix} color={COLORS.purple} sparklineData={data?.activeTime.series ?? []} />
-        <StatCard label="Commits" value={commitCount.value} suffix={commitCount.suffix} color={COLORS.amber} sparklineData={data?.commits.series ?? []} />
+        <StatCard label="Commits" value={commitCount.value} suffix={commitCount.suffix} color={COLORS.amber} sparklineData={data?.commits.series ?? []} sparklineType="bar" />
       </div>
 
       {/* Row 2: Token Story */}
