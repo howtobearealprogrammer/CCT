@@ -57,7 +57,8 @@ export async function fetchDashboardData(
     linesOfCode,
     activeTime,
     toolCalls,
-    toolDecisions,
+    actToolTotal,
+    actToolSuccess,
     agentCalls,
     mcpToolCalls,
     agentTypes,
@@ -86,7 +87,11 @@ export async function fetchDashboardData(
       start, end, step
     ),
     lokiQueryRange(
-      `sum by (source)(count_over_time(${SERVICE} | event_name="tool_decision" [${range}]))`,
+      `sum by (tool_name)(count_over_time(${SERVICE} | event_name="tool_result" | tool_name=~"Edit|Write|Bash" [${range}]))`,
+      start, end, step
+    ),
+    lokiQueryRange(
+      `sum by (tool_name)(count_over_time(${SERVICE} | event_name="tool_result" | tool_name=~"Edit|Write|Bash" | success="true" [${range}]))`,
       start, end, step
     ),
     lokiQueryRange(
@@ -129,6 +134,27 @@ export async function fetchDashboardData(
   const activeSeries = collapseToSingleSeries(activeTime);
   const commitsSeries = collapseToSingleSeries(commits);
 
+  // Compute Act Success Rate
+  const actTotalPie = seriesToPie(actToolTotal);
+  const actSuccessPie = seriesToPie(actToolSuccess);
+  const actTools = actTotalPie.map((t) => {
+    const s = actSuccessPie.find((p) => p.name === t.name);
+    const successful = s?.value ?? 0;
+    return {
+      name: t.name,
+      total: t.value,
+      successful,
+      rate: t.value > 0 ? Math.round((successful / t.value) * 100) : 0,
+    };
+  });
+  const totalAct = actTools.reduce((s, t) => s + t.total, 0);
+  const totalSuccess = actTools.reduce((s, t) => s + t.successful, 0);
+  const actSuccessData = {
+    tools: actTools,
+    aggregateRate: totalAct > 0 ? Math.round((totalSuccess / totalAct) * 100) : 0,
+    ringSlices: actTotalPie,
+  };
+
   return {
     totalTokens: {
       value: totalTokenSeries.data.reduce((s, p) => s + p.value, 0),
@@ -151,7 +177,7 @@ export async function fetchDashboardData(
     tokensByModel: seriesToPie(tokensByModel),
     toolCallsOverTime: topN(toolCalls, 8),
     toolDistribution: seriesToPie(toolCalls).slice(0, 6),
-    toolDecisions: seriesToPie(toolDecisions),
+    actSuccess: actSuccessData,
     agentCallsOverTime: agentCalls,
     mcpToolCallsOverTime: topN(mcpToolCalls, 5),
     agentTypes: agentTypePie,
