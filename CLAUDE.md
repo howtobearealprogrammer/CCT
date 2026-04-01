@@ -20,6 +20,16 @@ Custom telemetry monitoring stack for Claude Code. OTel Collector receives telem
 - **Check at target resolution** (1920x1080) — use `resize_window` to test viewport fit.
 - **If you dispatched a subagent to make a visual change**, you must still verify the result yourself with a screenshot before moving on.
 
+### Trust But Verify
+
+Never assume a change works — always verify with evidence before claiming success.
+
+- **After every subagent dispatch**, check the result yourself. Subagents report "done" but may have introduced visual regressions, missed edge cases, or misunderstood the task.
+- **After every data/query fix**, verify the actual rendered output in the browser, not just that the code compiles.
+- **Use typed verification agents** to cross-check state. Dispatch `Explore` agents (Haiku model) for quick checks like "is the container running?", "how many commits exist?", "what does Loki return for this query?". These are cheap and generate useful telemetry.
+- **Always type your agent dispatches** — use `subagent_type` (Explore, Plan, superpowers:code-reviewer, etc.) rather than defaulting to general-purpose. This makes the Agent Types telemetry meaningful and shows intentional tool use.
+- **Verification agents should use Haiku or Sonnet** — they don't need Opus. Save expensive models for implementation and judgment calls.
+
 ### Commit Frequently
 
 - Every functional change gets its own commit — this generates telemetry data that appears in the dashboard itself.
@@ -39,7 +49,7 @@ Changes to `dashboard/src/` require rebuilding the Docker container. The Vite de
 
 - **ECharts x-axis auto-scales to data range** — always pass `timeRangeMs` prop to pin axes to the selected time range.
 - **ECharts y-axis shows decimals for integer data** — use `integerAxis` prop (sets `minInterval: 1`) on count-based charts.
-- **Ring gauge center text** — use ECharts `graphic` overlay rather than pie `label` with `position: "center"` (the latter only works reliably for the first data item).
+- **Ring gauge center text** — use pie `label` with `position: "center"` and `rich` formatting. Avoid `graphic` overlays (they don't auto-center on the ring).
 - **Loki timestamps are nanoseconds** — multiply by 1e9 when sending, divide by 1e6 when receiving (to get ms).
 - **Prometheus `increase()` range** — use the step interval for time series charts, use the full range for aggregate/pie queries.
 
