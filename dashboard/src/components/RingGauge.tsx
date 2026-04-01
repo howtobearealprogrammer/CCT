@@ -6,9 +6,21 @@ interface RingGaugeProps {
   data: PieSlice[];
   colorMap?: Record<string, string>;
   height?: string;
+  centerValue?: number;
+  centerLabel?: string;
+  centerColor?: string;
+  legendLabels?: Record<string, string>;
 }
 
-export default function RingGauge({ data, colorMap, height = "100%" }: RingGaugeProps) {
+export default function RingGauge({
+  data,
+  colorMap,
+  height = "100%",
+  centerValue,
+  centerLabel,
+  centerColor,
+  legendLabels,
+}: RingGaugeProps) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const hasData = data.length > 0 && total > 0;
   const dominant = data[0];
@@ -17,8 +29,12 @@ export default function RingGauge({ data, colorMap, height = "100%" }: RingGauge
   const shortName =
     dominantName.length > 10 ? dominantName.split(/[-_]/)[0] ?? dominantName : dominantName;
 
+  const displayPct = centerValue !== undefined ? centerValue : dominantPct;
+  const displayLabel = centerLabel ?? shortName;
+  const displayColor = centerColor ?? "#e2e8f0";
+
   const centerText = hasData
-    ? `{pct|${dominantPct}%}\n{sub|${shortName}}`
+    ? `{pct|${displayPct}%}\n{sub|${displayLabel}}`
     : "{nodata|No data}";
 
   const option = {
@@ -44,7 +60,7 @@ export default function RingGauge({ data, colorMap, height = "100%" }: RingGauge
           position: "center" as const,
           formatter: centerText,
           rich: {
-            pct: { fontSize: 20, fontWeight: 700, color: "#e2e8f0", lineHeight: 26 },
+            pct: { fontSize: 20, fontWeight: 700, color: displayColor, lineHeight: 26 },
             sub: { fontSize: 10, color: "#5a6a7a", lineHeight: 14 },
             nodata: { fontSize: 11, fontWeight: 500, color: "#5a6a7a", lineHeight: 16 },
           },
@@ -54,12 +70,12 @@ export default function RingGauge({ data, colorMap, height = "100%" }: RingGauge
         },
         data: hasData
           ? data.map((d, i) => ({
-              name: d.name,
-              value: d.value,
-              itemStyle: {
-                color: colorMap?.[d.name] ?? CHART_PALETTE[i % CHART_PALETTE.length],
-              },
-            }))
+            name: d.name,
+            value: d.value,
+            itemStyle: {
+              color: colorMap?.[d.name] ?? CHART_PALETTE[i % CHART_PALETTE.length],
+            },
+          }))
           : [{ name: "", value: 1, itemStyle: { color: "#1e2a3a" } }],
       },
     ],
@@ -72,6 +88,7 @@ export default function RingGauge({ data, colorMap, height = "100%" }: RingGauge
       itemHeight: 8,
       textStyle: { color: "#8a94a6", fontSize: 10 },
       formatter: (name: string) => {
+        if (legendLabels?.[name]) return legendLabels[name];
         const item = data.find((d) => d.name === name);
         const pct = total > 0 && item ? Math.round((item.value / total) * 100) : 0;
         return `${name}  ${pct}%`;
