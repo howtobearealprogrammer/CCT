@@ -17,6 +17,10 @@ export default function RingGauge({ data, colorMap, height = "100%" }: RingGauge
   const shortName =
     dominantName.length > 10 ? dominantName.split(/[-_]/)[0] ?? dominantName : dominantName;
 
+  const centerText = hasData
+    ? `{pct|${dominantPct}%}\n{sub|${shortName}}`
+    : "{nodata|No data}";
+
   const option = {
     animation: true,
     animationDuration: 800,
@@ -28,31 +32,6 @@ export default function RingGauge({ data, colorMap, height = "100%" }: RingGauge
       formatter: (params: { name: string; percent: number }) =>
         `${params.name}: ${params.percent}%`,
     },
-    graphic: [
-      {
-        type: "text" as const,
-        left: "26%",
-        top: hasData ? "38%" : "46%",
-        style: {
-          text: hasData ? `${dominantPct}%` : "No data",
-          fontSize: hasData ? 20 : 12,
-          fontWeight: 700,
-          fill: hasData ? "#e2e8f0" : "#5a6a7a",
-          textAlign: "center",
-        },
-      },
-      {
-        type: "text" as const,
-        left: "26%",
-        top: "55%",
-        style: {
-          text: hasData ? shortName : "",
-          fontSize: 10,
-          fill: "#5a6a7a",
-          textAlign: "center",
-        },
-      },
-    ],
     series: [
       {
         type: "pie" as const,
@@ -60,7 +39,19 @@ export default function RingGauge({ data, colorMap, height = "100%" }: RingGauge
         center: ["30%", "50%"],
         avoidLabelOverlap: false,
         itemStyle: { borderWidth: 2, borderColor: "#0a0e17" },
-        label: { show: false },
+        label: {
+          show: true,
+          position: "center" as const,
+          formatter: centerText,
+          rich: {
+            pct: { fontSize: 20, fontWeight: 700, color: "#e2e8f0", lineHeight: 26 },
+            sub: { fontSize: 10, color: "#5a6a7a", lineHeight: 14 },
+            nodata: { fontSize: 11, fontWeight: 500, color: "#5a6a7a", lineHeight: 16 },
+          },
+        },
+        emphasis: {
+          label: { show: true, fontSize: 20, fontWeight: 700 },
+        },
         data: hasData
           ? data.map((d, i) => ({
               name: d.name,
