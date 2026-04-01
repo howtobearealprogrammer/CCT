@@ -33,7 +33,11 @@ export interface DashboardData {
   tokensByModel: PieSlice[];
   toolCallsOverTime: TimeSeries[];
   toolDistribution: PieSlice[];
-  toolDecisions: PieSlice[];
+  actSuccess: {
+    tools: Array<{ name: string; total: number; successful: number; rate: number }>;
+    aggregateRate: number;
+    ringSlices: PieSlice[];
+  };
   agentCallsOverTime: TimeSeries[];
   mcpToolCallsOverTime: TimeSeries[];
   agentTypes: PieSlice[];
