@@ -27,22 +27,39 @@ export default function RingGauge({ data, colorMap, height = "100%" }: RingGauge
       formatter: (params: { name: string; percent: number }) =>
         `${params.name}: ${params.percent}%`,
     },
+    graphic: [
+      {
+        type: "text" as const,
+        left: "26%",
+        top: "38%",
+        style: {
+          text: `${dominantPct}%`,
+          fontSize: 20,
+          fontWeight: 700,
+          fill: "#e2e8f0",
+          textAlign: "center",
+        },
+      },
+      {
+        type: "text" as const,
+        left: "26%",
+        top: "55%",
+        style: {
+          text: shortName,
+          fontSize: 10,
+          fill: "#5a6a7a",
+          textAlign: "center",
+        },
+      },
+    ],
     series: [
       {
         type: "pie" as const,
-        radius: ["58%", "78%"],
-        center: ["35%", "50%"],
+        radius: ["52%", "75%"],
+        center: ["30%", "50%"],
         avoidLabelOverlap: false,
         itemStyle: { borderWidth: 2, borderColor: "#0a0e17" },
-        label: {
-          show: true,
-          position: "center" as const,
-          formatter: [`{pct|${dominantPct}%}`, `{sub|${shortName}}`].join("\n"),
-          rich: {
-            pct: { fontSize: 18, fontWeight: 700, color: "#e2e8f0", lineHeight: 24 },
-            sub: { fontSize: 9, color: "#5a6a7a", lineHeight: 14 },
-          },
-        },
+        label: { show: false },
         data: data.map((d, i) => ({
           name: d.name,
           value: d.value,

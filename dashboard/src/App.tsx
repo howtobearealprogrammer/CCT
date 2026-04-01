@@ -39,7 +39,7 @@ export default function App() {
     <div
       className="h-screen w-screen p-3 grid gap-3"
       style={{
-        gridTemplateRows: "48px 90px 1fr 1fr auto",
+        gridTemplateRows: "48px 80px 1fr 1fr 0.7fr",
         background: COLORS.bg,
       }}
     >
