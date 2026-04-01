@@ -10,8 +10,9 @@ interface RingGaugeProps {
 
 export default function RingGauge({ data, colorMap, height = "100%" }: RingGaugeProps) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
+  const hasData = data.length > 0 && total > 0;
   const dominant = data[0];
-  const dominantPct = total > 0 && dominant ? Math.round((dominant.value / total) * 100) : 0;
+  const dominantPct = hasData && dominant ? Math.round((dominant.value / total) * 100) : 0;
   const dominantName = dominant?.name ?? "";
   const shortName =
     dominantName.length > 10 ? dominantName.split(/[-_]/)[0] ?? dominantName : dominantName;
@@ -31,12 +32,12 @@ export default function RingGauge({ data, colorMap, height = "100%" }: RingGauge
       {
         type: "text" as const,
         left: "26%",
-        top: "38%",
+        top: hasData ? "38%" : "46%",
         style: {
-          text: `${dominantPct}%`,
-          fontSize: 20,
+          text: hasData ? `${dominantPct}%` : "No data",
+          fontSize: hasData ? 20 : 12,
           fontWeight: 700,
-          fill: "#e2e8f0",
+          fill: hasData ? "#e2e8f0" : "#5a6a7a",
           textAlign: "center",
         },
       },
@@ -45,7 +46,7 @@ export default function RingGauge({ data, colorMap, height = "100%" }: RingGauge
         left: "26%",
         top: "55%",
         style: {
-          text: shortName,
+          text: hasData ? shortName : "",
           fontSize: 10,
           fill: "#5a6a7a",
           textAlign: "center",
@@ -60,13 +61,15 @@ export default function RingGauge({ data, colorMap, height = "100%" }: RingGauge
         avoidLabelOverlap: false,
         itemStyle: { borderWidth: 2, borderColor: "#0a0e17" },
         label: { show: false },
-        data: data.map((d, i) => ({
-          name: d.name,
-          value: d.value,
-          itemStyle: {
-            color: colorMap?.[d.name] ?? CHART_PALETTE[i % CHART_PALETTE.length],
-          },
-        })),
+        data: hasData
+          ? data.map((d, i) => ({
+              name: d.name,
+              value: d.value,
+              itemStyle: {
+                color: colorMap?.[d.name] ?? CHART_PALETTE[i % CHART_PALETTE.length],
+              },
+            }))
+          : [{ name: "", value: 1, itemStyle: { color: "#1e2a3a" } }],
       },
     ],
     legend: {

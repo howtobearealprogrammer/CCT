@@ -84,7 +84,7 @@ export async function fetchDashboardData(
       start, end, step
     ),
     lokiQueryRange(
-      `sum by (source)(count_over_time(${SERVICE} | event_name="tool_decision" [${step}s]))`,
+      `sum by (source)(count_over_time(${SERVICE} | event_name="tool_decision" [${range}]))`,
       start, end, step
     ),
     lokiQueryRange(
