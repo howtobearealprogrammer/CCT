@@ -37,10 +37,10 @@ export const MODEL_COLORS: Record<string, string> = {
   sonnet: COLORS.blue,
 };
 
-export const DECISION_COLORS: Record<string, string> = {
-  config: COLORS.blue,
-  user_temporary: COLORS.amber,
-  user_permanent: COLORS.green,
+export const ACT_TOOL_COLORS: Record<string, string> = {
+  Bash: COLORS.green,
+  Edit: COLORS.blue,
+  Write: COLORS.purple,
 };
 
 export const AGENT_TYPE_COLORS: Record<string, string> = {
