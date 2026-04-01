@@ -63,7 +63,12 @@ export default function App() {
       {/* Row 2: Token Story */}
       <div className="grid gap-3" style={{ gridTemplateColumns: "2fr 1fr" }}>
         <ChartCard title="Token Usage Over Time">
-          <AreaChart series={data?.tokenUsageOverTime ?? []} colorMap={TOKEN_TYPE_COLORS} />
+          <AreaChart
+            series={data?.tokenUsageOverTime ?? []}
+            colorMap={TOKEN_TYPE_COLORS}
+            markLineTimestamps={data?.userPromptTimestamps}
+            markLineLabel="prompt"
+          />
         </ChartCard>
         <div className="grid gap-3 grid-rows-2">
           <ChartCard title="Token Usage by Type">

@@ -37,4 +37,5 @@ export interface DashboardData {
   agentCallsOverTime: TimeSeries[];
   mcpToolCallsOverTime: TimeSeries[];
   agentTypes: PieSlice[];
+  userPromptTimestamps: number[]; // Unix ms timestamps of user prompts
 }

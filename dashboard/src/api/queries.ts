@@ -1,5 +1,5 @@
 import { prometheusQueryRange } from "./prometheus";
-import { lokiQueryRange } from "./loki";
+import { lokiQueryRange, lokiLogTimestamps } from "./loki";
 import type { DashboardData, TimeSeries, PieSlice } from "../types";
 
 const SERVICE = `{service_name="claude-code"}`;
@@ -61,6 +61,7 @@ export async function fetchDashboardData(
     mcpToolCalls,
     agentTypes,
     commits,
+    userPromptTimestamps,
   ] = await Promise.all([
     prometheusQueryRange(
       `sum by (type)(increase(claude_code_token_usage_tokens_total[${step}s]))`,
@@ -102,6 +103,10 @@ export async function fetchDashboardData(
       `sum(count_over_time(${SERVICE} | event_name="tool_result" | tool_name="Bash" | line_format \`{{.tool_parameters}}\` | json git_commit_id="git_commit_id" | git_commit_id != "" [${step}s]))`,
       start, end, step
     ),
+    lokiLogTimestamps(
+      `${SERVICE} | event_name="user_prompt"`,
+      start, end
+    ),
   ]);
 
   const totalTokenSeries = collapseToSingleSeries(tokensByType);
@@ -135,5 +140,6 @@ export async function fetchDashboardData(
     agentCallsOverTime: agentCalls,
     mcpToolCallsOverTime: topN(mcpToolCalls, 5),
     agentTypes: seriesToPie(agentTypes),
+    userPromptTimestamps,
   };
 }

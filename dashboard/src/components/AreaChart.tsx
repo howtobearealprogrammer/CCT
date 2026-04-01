@@ -8,6 +8,8 @@ interface AreaChartProps {
   stacked?: boolean;
   showLegend?: boolean;
   height?: string;
+  markLineTimestamps?: number[]; // Unix ms timestamps to show as vertical lines
+  markLineLabel?: string;
 }
 
 export default function AreaChart({
@@ -16,6 +18,8 @@ export default function AreaChart({
   stacked = true,
   showLegend = true,
   height = "100%",
+  markLineTimestamps,
+  markLineLabel = "prompt",
 }: AreaChartProps) {
   const option = {
     animation: true,
@@ -57,7 +61,7 @@ export default function AreaChart({
       : undefined,
     series: series.map((s, i) => {
       const color = colorMap?.[s.label] ?? CHART_PALETTE[i % CHART_PALETTE.length];
-      return {
+      const base = {
         name: s.label,
         type: "line" as const,
         stack: stacked ? "total" : undefined,
@@ -76,6 +80,31 @@ export default function AreaChart({
         },
         data: s.data.map((p) => [p.timestamp * 1000, p.value]),
       };
+      // Add markLines only to the first series to avoid duplicates
+      if (i === 0 && markLineTimestamps && markLineTimestamps.length > 0) {
+        return {
+          ...base,
+          markLine: {
+            silent: true,
+            symbol: "none",
+            lineStyle: {
+              color: "rgba(255,255,255,0.25)",
+              type: "dashed" as const,
+              width: 1,
+            },
+            label: {
+              show: true,
+              position: "start" as const,
+              formatter: markLineLabel,
+              fontSize: 8,
+              color: "rgba(255,255,255,0.35)",
+              distance: 4,
+            },
+            data: markLineTimestamps.map((ts) => ({ xAxis: ts })),
+          },
+        };
+      }
+      return base;
     }),
   };
 
