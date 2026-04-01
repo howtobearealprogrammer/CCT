@@ -51,7 +51,7 @@ export default function RingGauge({
     series: [
       {
         type: "pie" as const,
-        radius: ["58%", "78%"],
+        radius: ["75%", "90%"],
         center: ["30%", "50%"],
         avoidLabelOverlap: false,
         itemStyle: { borderWidth: 2, borderColor: "#0a0e17" },
@@ -60,13 +60,13 @@ export default function RingGauge({
           position: "center" as const,
           formatter: centerText,
           rich: {
-            pct: { fontSize: 20, fontWeight: 700, color: displayColor, lineHeight: 26 },
-            sub: { fontSize: 10, color: "#5a6a7a", lineHeight: 14 },
+            pct: { fontSize: 17, fontWeight: 700, color: displayColor, lineHeight: 22 },
+            sub: { fontSize: 9, color: "#5a6a7a", lineHeight: 12 },
             nodata: { fontSize: 11, fontWeight: 500, color: "#5a6a7a", lineHeight: 16 },
           },
         },
         emphasis: {
-          label: { show: true, fontSize: 20, fontWeight: 700 },
+          label: { show: true, fontSize: 17, fontWeight: 700 },
         },
         data: hasData
           ? data.map((d, i) => ({
