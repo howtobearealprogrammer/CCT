@@ -15,9 +15,10 @@ Custom telemetry monitoring stack for Claude Code. OTel Collector receives telem
 
 ### Verify Every Visual Change
 
-- **Always screenshot after rebuilding** the dashboard container. Use chrome MCP tools (`mcp__claude-in-chrome__computer` screenshot, zoom) to verify.
-- **Zoom into specific panels** to check details like axis labels, ring gauge text, sparkline rendering.
+- **MANDATORY: Screenshot after EVERY rebuild.** No exceptions. Use chrome MCP tools (`mcp__claude-in-chrome__computer` screenshot, zoom) immediately after `docker compose up -d --build dashboard`. Never assume a change looks right — verify it.
+- **Zoom into the specific panel you changed** to check details like axis labels, ring gauge text, sparkline rendering, bar counts. A full-page screenshot is not enough for small components.
 - **Check at target resolution** (1920x1080) — use `resize_window` to test viewport fit.
+- **If you dispatched a subagent to make a visual change**, you must still verify the result yourself with a screenshot before moving on.
 
 ### Commit Frequently
 
