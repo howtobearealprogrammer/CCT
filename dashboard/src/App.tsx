@@ -7,7 +7,7 @@ import ChartCard from "./components/ChartCard";
 import AreaChart from "./components/AreaChart";
 import RingGauge from "./components/RingGauge";
 import HorizontalBar from "./components/HorizontalBar";
-import { COLORS, TOKEN_TYPE_COLORS, DECISION_COLORS, AGENT_TYPE_COLORS, colorForModel } from "./utils/colors";
+import { COLORS, TOKEN_TYPE_COLORS, ACT_TOOL_COLORS, AGENT_TYPE_COLORS, colorForModel } from "./utils/colors";
 import { formatNumber, formatDuration } from "./utils/formatters";
 
 export default function App() {
@@ -39,6 +39,16 @@ export default function App() {
   if (data) {
     for (const slice of data.tokensByModel) {
       modelColorMap[slice.name] = colorForModel(slice.name);
+    }
+  }
+
+  // Act Success Rate center color
+  const actRate = data?.actSuccess?.aggregateRate ?? 0;
+  const actCenterColor = actRate >= 95 ? "#73BF69" : actRate >= 80 ? "#FF9830" : "#F2495C";
+  const actLegendLabels: Record<string, string> = {};
+  if (data?.actSuccess) {
+    for (const t of data.actSuccess.tools) {
+      actLegendLabels[t.name] = `${t.name}  ${t.rate}%`;
     }
   }
 
@@ -97,8 +107,15 @@ export default function App() {
           <ChartCard title="Tool Distribution">
             <HorizontalBar data={data?.toolDistribution ?? []} />
           </ChartCard>
-          <ChartCard title="Tool Decisions">
-            <RingGauge data={data?.toolDecisions ?? []} colorMap={DECISION_COLORS} />
+          <ChartCard title="Act Success Rate">
+            <RingGauge
+              data={data?.actSuccess?.ringSlices ?? []}
+              colorMap={ACT_TOOL_COLORS}
+              centerValue={data?.actSuccess?.aggregateRate}
+              centerLabel="success"
+              centerColor={data ? actCenterColor : undefined}
+              legendLabels={actLegendLabels}
+            />
           </ChartCard>
         </div>
       </div>
