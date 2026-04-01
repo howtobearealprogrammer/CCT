@@ -11,6 +11,7 @@ interface AreaChartProps {
   markLineTimestamps?: number[]; // Unix ms timestamps to show as vertical lines
   markLineLabel?: string;
   timeRangeMs?: { start: number; end: number }; // Force x-axis bounds
+  integerAxis?: boolean; // Force integer tick marks (for count-based charts)
 }
 
 export default function AreaChart({
@@ -22,6 +23,7 @@ export default function AreaChart({
   markLineTimestamps,
   markLineLabel = "prompt",
   timeRangeMs,
+  integerAxis = false,
 }: AreaChartProps) {
   const option = {
     animation: true,
@@ -53,6 +55,7 @@ export default function AreaChart({
       axisTick: { show: false },
       axisLabel: { color: "#5a6a7a", fontSize: 10 },
       splitLine: { lineStyle: { color: "rgba(255,255,255,0.04)" } },
+      ...(integerAxis ? { minInterval: 1 } : {}),
     },
     legend: showLegend
       ? {

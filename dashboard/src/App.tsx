@@ -91,7 +91,7 @@ export default function App() {
       {/* Row 3: Tool Story */}
       <div className="grid gap-3" style={{ gridTemplateColumns: "2fr 1fr" }}>
         <ChartCard title="Tool Calls Over Time">
-          <AreaChart series={data?.toolCallsOverTime ?? []} showLegend={false} timeRangeMs={timeRangeMs} />
+          <AreaChart series={data?.toolCallsOverTime ?? []} showLegend={false} timeRangeMs={timeRangeMs} integerAxis />
         </ChartCard>
         <div className="grid gap-3 grid-rows-2">
           <ChartCard title="Tool Distribution">
@@ -112,10 +112,11 @@ export default function App() {
             stacked={false}
             showLegend={false}
             timeRangeMs={timeRangeMs}
+            integerAxis
           />
         </ChartCard>
         <ChartCard title="MCP Tool Calls Over Time">
-          <AreaChart series={data?.mcpToolCallsOverTime ?? []} showLegend={false} timeRangeMs={timeRangeMs} />
+          <AreaChart series={data?.mcpToolCallsOverTime ?? []} showLegend={false} timeRangeMs={timeRangeMs} integerAxis />
         </ChartCard>
         <ChartCard title="Agent Types">
           <RingGauge data={data?.agentTypes ?? []} colorMap={AGENT_TYPE_COLORS} />
