@@ -1,18 +1,18 @@
 # Claude Code Telemetry Monitoring Stack
 
-Local observability stack for tracking Claude Code usage metrics on this machine. Captures token usage, sessions, tool use, productivity metrics, and event logs — visualized in a Grafana dashboard. Designed for solo development with Claude Code on a Max plan (cost tracking is omitted).
+Local observability stack for tracking Claude Code usage metrics on this machine. Captures token usage, sessions, tool use, productivity metrics, and event logs — visualized in a custom React dashboard. Designed for solo development with Claude Code on a Max plan (cost tracking is omitted).
 
 ## Architecture
 
 ```
-                                                          ┌──Prometheus export──▶ Prometheus ──▶ Grafana
-Claude Code (host) ──OTLP/gRPC──▶ OpenTelemetry Collector─┤                      :9090          :3001
-                                   :4317 (gRPC)            └──OTLP/HTTP────────▶ Loki ──────────┘
+                                                          ┌──Prometheus export──▶ Prometheus ──▶ Custom Dashboard
+Claude Code (host) ──OTLP/gRPC──▶ OpenTelemetry Collector─┤                      :9090       ↗  :3002
+                                   :4317 (gRPC)            └──OTLP/HTTP────────▶ Loki ───────
                                    :4318 (HTTP)                                  :3100
                                    :8889 (metrics)
 ```
 
-All four services run as Docker containers on a shared Docker Compose network. Claude Code runs on the host and sends telemetry to the OTel Collector via the mapped gRPC port (`localhost:4317`). Metrics go to Prometheus; event logs (tool use, API requests, prompts) go to Loki.
+All services run as Docker containers on a shared Docker Compose network. Claude Code runs on the host and sends telemetry to the OTel Collector via the mapped gRPC port (`localhost:4317`). Metrics go to Prometheus; event logs (tool use, API requests, prompts) go to Loki. The custom dashboard at `:3002` queries both Prometheus and Loki directly via an Nginx reverse proxy.
 
 ## Services
 
@@ -21,18 +21,35 @@ All four services run as Docker containers on a shared Docker Compose network. C
 | `otel-collector` | `otel/opentelemetry-collector-contrib:0.120.0` | 4317, 4318, 8889 | Receives OTLP telemetry from Claude Code, exports metrics to Prometheus and logs to Loki |
 | `prometheus` | `prom/prometheus:v3.3.0` | 9090 | Scrapes and stores time-series metrics (30-day retention) |
 | `loki` | `grafana/loki:3.4.2` | 3100 | Stores event logs (tool use, API requests, prompts) via OTLP ingestion |
-| `grafana` | `grafana/grafana:11.6.0` | 3001 | Dashboard visualization |
+| `dashboard` | Custom (Nginx + Vite/React build) | 3002 | Primary dashboard — queries Prometheus and Loki directly |
+| ~~`grafana`~~ | ~~`grafana/grafana:11.6.0`~~ | ~~3001~~ | Commented out in docker-compose; re-enable for debugging |
 
-**Why port 3001 for Grafana?** Port 3000 is used by the SimpleClub API server.
+**Why port 3002 for the dashboard?** Port 3000 is used by the SimpleClub API server; port 3001 was previously used by Grafana.
 
 **Why the `-contrib` OTel image?** The base `otel/opentelemetry-collector` image does not include the Prometheus exporter. The `-contrib` variant is required.
 
 ## Access
 
-- **Grafana**: http://localhost:3001 (username: `admin`, password has been changed from default)
+- **Custom Dashboard**: http://localhost:3002 (primary frontend)
 - **Prometheus UI**: http://localhost:9090
 - **Prometheus Targets**: http://localhost:9090/targets (both should show "UP")
-- **Loki**: http://localhost:3100 (queried via Grafana; direct API at `/loki/api/v1/query`)
+- **Loki**: http://localhost:3100 (direct API at `/loki/api/v1/query`)
+- ~~**Grafana**: http://localhost:3001~~ — commented out in docker-compose; re-enable for debugging (username: `admin`, password has been changed from default)
+
+## Custom Dashboard
+
+The primary frontend is a custom web app served at http://localhost:3002. It is built with **Vite + React + ECharts + Tailwind CSS** and served by **Nginx**, which also acts as a reverse proxy for the Prometheus and Loki APIs so the browser never needs direct access to those ports.
+
+**Design:** Deep navy dark theme with glassmorphism cards. Animated transitions when data updates or the time range changes.
+
+**Features:**
+- Configurable time range (1h, 6h, 24h, 7d, 30d) and refresh interval (15s, 30s, 1m, 5m)
+- ECharts area/line charts with smooth animated transitions
+- Queries Prometheus (`/api/prometheus/`) and Loki (`/api/loki/`) via Nginx reverse proxy — no CORS issues
+
+**Source:** `dashboard/` directory in the repo root. The `Dockerfile` builds the Vite app and packages it with an Nginx config that handles both static file serving and API proxying.
+
+**Grafana (deprecated as primary frontend):** The Grafana service is commented out in `docker-compose.yml`. It can be re-enabled for ad-hoc debugging or query exploration — the provisioned dashboards and datasources are still present in `grafana/provisioning/`. To re-enable, uncomment the `grafana` service block and run `docker compose up -d grafana`.
 
 ## Managing the Stack
 
@@ -48,6 +65,7 @@ docker compose down
 # View logs
 docker compose logs -f                    # all services
 docker compose logs otel-collector -f     # just the collector
+docker compose logs dashboard -f          # custom dashboard (Nginx)
 
 # Check status
 docker compose ps
@@ -65,8 +83,8 @@ Three named Docker volumes preserve data across container restarts:
 | Volume | Purpose |
 |--------|---------|
 | `claude-code-monitoring_prometheus_data` | Prometheus time-series database (30-day retention) |
-| `claude-code-monitoring_grafana_data` | Grafana configuration, user preferences, alerts |
 | `claude-code-monitoring_loki_data` | Loki log storage (tool use events, API requests, prompts) |
+| `claude-code-monitoring_grafana_data` | Grafana configuration, user preferences, alerts (only used if Grafana service is re-enabled) |
 
 To fully reset data: `docker compose down -v` (destroys all volumes).
 
@@ -315,11 +333,18 @@ This is necessary because `subagent_type` is nested inside the `tool_input` JSON
 ```
 claude-code-monitoring/
 ├── .gitignore                         # Excludes .claude/ directory
-├── docker-compose.yml                 # Service definitions and volumes
+├── docker-compose.yml                 # Service definitions and volumes (Grafana commented out)
 ├── otel-collector-config.yaml         # OTLP receivers, processors, exporters
 ├── prometheus.yml                     # Scrape targets and intervals
 ├── README.md                          # This file
-└── grafana/
+├── dashboard/                         # Custom React dashboard (primary frontend, :3002)
+│   ├── Dockerfile                     # Builds Vite app, packages with Nginx
+│   ├── nginx.conf                     # Nginx config: static serving + API reverse proxy
+│   ├── vite.config.ts                 # Vite build config
+│   ├── index.html                     # App entry point
+│   ├── package.json
+│   └── src/                           # React + ECharts + Tailwind source
+└── grafana/                           # Grafana config (kept for debugging; service commented out)
     └── provisioning/
         ├── datasources/
         │   └── datasource.yml         # Auto-configures Prometheus + Loki datasources
@@ -440,7 +465,7 @@ Grafana's chrome (top nav bar + dashboard toolbar) consumes ~92px. At ~30px per 
 
 ## Troubleshooting
 
-**No metrics appearing in Grafana:**
+**No metrics appearing in the dashboard:**
 1. Check the stack is running: `docker compose ps`
 2. Verify Prometheus targets are UP: http://localhost:9090/targets
 3. Check OTel Collector is receiving data: `docker compose logs otel-collector --tail=50`
@@ -459,9 +484,14 @@ Grafana's chrome (top nav bar + dashboard toolbar) consumes ~92px. At ~30px per 
 - Event attributes (`event_name`, `tool_name`, etc.) are structured metadata, not stream labels — queries must use the filter pipeline: `{service_name="claude-code"} | event_name="tool_result"` (not `{event_name="tool_result"}`)
 - Check Loki is receiving data: `curl -s 'http://localhost:3100/loki/api/v1/label/service_name/values'` should return `["claude-code"]`
 
-**Dashboard not loading:**
-- Check Grafana logs: `docker compose logs grafana`
-- Verify dashboard JSON files are mounted: both files in `grafana/provisioning/dashboards/` should be mounted to `/var/lib/grafana/dashboards/` inside the container
+**Custom dashboard not loading:**
+- Check Nginx logs: `docker compose logs dashboard`
+- Verify the container is running: `docker compose ps dashboard`
+- The dashboard proxies API requests to Prometheus (`/api/prometheus/`) and Loki (`/api/loki/`) via Nginx — if those services are down, panels will show errors
+
+**Grafana (if re-enabled for debugging):**
+- Check logs: `docker compose logs grafana`
+- Verify dashboard JSON files are mounted: files in `grafana/provisioning/dashboards/` should be mounted inside the container
 
 **Verifying Loki field names on events:**
 ```bash
@@ -481,8 +511,10 @@ Typical idle/light-use memory footprint (single user):
 | OTel Collector | ~30 MiB |
 | Prometheus | ~30 MiB |
 | Loki | ~40 MiB |
-| Grafana | ~75 MiB |
-| **Total** | **~175 MiB** |
+| Dashboard (Nginx) | ~5 MiB |
+| **Total** | **~105 MiB** |
+
+Grafana (~75 MiB) is commented out; re-enable it for debugging if needed.
 
 ## MCP Servers
 
