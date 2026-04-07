@@ -77,3 +77,58 @@ export async function lokiQueryRange(
     })),
   }));
 }
+
+/** Returns the unix-seconds timestamp of the earliest matching event in the last `lookbackSeconds`, or null if none. */
+export async function lokiEarliestEventTime(
+  expr: string,
+  lookbackSeconds: number = 30 * 24 * 3600
+): Promise<number | null> {
+  const end = Math.floor(Date.now() / 1000);
+  const start = end - lookbackSeconds;
+  const params = new URLSearchParams({
+    query: expr,
+    start: (start * 1e9).toString(),
+    end: (end * 1e9).toString(),
+    limit: "1",
+    direction: "forward",
+  });
+  const res = await fetch(`/api/loki/loki/api/v1/query_range?${params}`);
+  if (!res.ok) throw new Error(`Loki error: ${res.status}`);
+  const json: LokiLogResponse = await res.json();
+  for (const stream of json.data.result) {
+    for (const [nsTimestamp] of stream.values) {
+      return Math.floor(Number(nsTimestamp) / 1e9);
+    }
+  }
+  return null;
+}
+
+/** Returns bucketed counts across [start, end] using `bins` buckets. */
+export async function lokiActivityHistogram(
+  expr: string,
+  start: number,
+  end: number,
+  bins: number = 120
+): Promise<{ t: number; count: number }[]> {
+  const span = Math.max(end - start, 1);
+  const step = Math.max(Math.floor(span / bins), 15);
+  const params = new URLSearchParams({
+    query: expr,
+    start: (start * 1e9).toString(),
+    end: (end * 1e9).toString(),
+    step: step.toString(),
+  });
+  const res = await fetch(`/api/loki/loki/api/v1/query_range?${params}`);
+  if (!res.ok) throw new Error(`Loki error: ${res.status}`);
+  const json: LokiResponse = await res.json();
+  const buckets = new Map<number, number>();
+  for (const r of json.data.result) {
+    for (const [ts, val] of r.values) {
+      const t = Math.floor(Number(ts));
+      buckets.set(t, (buckets.get(t) ?? 0) + parseFloat(val));
+    }
+  }
+  return [...buckets.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([t, count]) => ({ t, count }));
+}
