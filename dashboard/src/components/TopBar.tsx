@@ -32,7 +32,7 @@ export default function TopBar({
               : "bg-[#FF9830]/15 text-[#FF9830]"
           }`}
         >
-          {isLive ? "LIVE" : "OFFLINE"}
+          {isLive ? "LIVE" : "HISTORICAL"}
         </span>
       </div>
       <div className="flex items-center gap-2">

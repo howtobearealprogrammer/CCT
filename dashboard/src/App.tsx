@@ -25,7 +25,7 @@ export default function App() {
   } = useTimeRange();
 
   const stableRefresh = useCallback(refreshQueryParams, [rangeSeconds, endSeconds]);
-  const { data, error, lastUpdated } = useDashboardData(stableRefresh, refreshSeconds);
+  const { data, lastUpdated } = useDashboardData(stableRefresh, refreshSeconds);
   const { earliestSeconds, histogram } = useActivityHistogram(30000);
   const [timelineVisible, setTimelineVisible] = useState(false);
 
@@ -75,7 +75,7 @@ export default function App() {
         onRangeChange={setRangeSeconds}
         refreshSeconds={refreshSeconds}
         onRefreshChange={setRefreshSeconds}
-        isLive={!error && lastUpdated !== null && isLive}
+        isLive={isLive}
         timelineVisible={timelineVisible}
         onToggleTimeline={() => setTimelineVisible((v) => !v)}
       />
