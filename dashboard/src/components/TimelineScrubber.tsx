@@ -12,12 +12,9 @@ interface Props {
 
 function fmt(unixSec: number) {
   const d = new Date(unixSec * 1000);
-  return d.toLocaleString([], {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const date = d.toLocaleDateString([], { month: "short", day: "2-digit" });
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  return `${date} ${time}`;
 }
 
 export default function TimelineScrubber({
@@ -130,13 +127,13 @@ export default function TimelineScrubber({
       >
         {isLive ? "LIVE" : "HISTORICAL"}
       </span>
-      <div className="text-[10px] text-[#8a94a6] tabular-nums w-[150px] text-right">
+      <div className="text-[10px] text-[#8a94a6] tabular-nums w-[100px] text-right">
         {fmt(effectiveStart)}
       </div>
       <div
         ref={trackRef}
         onClick={onTrackClick}
-        className="relative flex-1 h-[48px] rounded bg-white/[0.04] border border-white/[0.06] overflow-hidden cursor-pointer select-none"
+        className="relative flex-1 h-[22px] rounded bg-white/[0.04] border border-white/[0.06] overflow-hidden cursor-pointer select-none"
       >
         <ReactECharts
           option={chartOption}
@@ -161,7 +158,7 @@ export default function TimelineScrubber({
           />
         )}
       </div>
-      <div className="text-[10px] text-[#8a94a6] tabular-nums w-[150px]">
+      <div className="text-[10px] text-[#8a94a6] tabular-nums w-[100px]">
         {fmt(effectiveEnd)}
       </div>
       <button

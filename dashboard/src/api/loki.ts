@@ -78,29 +78,39 @@ export async function lokiQueryRange(
   }));
 }
 
-/** Returns the unix-seconds timestamp of the earliest matching event in the last `lookbackSeconds`, or null if none. */
+/**
+ * Returns the unix-seconds timestamp of the earliest non-empty hour bucket
+ * for the given stream selector, looking back up to `lookbackSeconds`. Returns null if none.
+ *
+ * Uses a metric query (`sum(count_over_time(...))`) at 1h resolution because Loki's
+ * log-query path doesn't reliably return the oldest line across multi-day windows.
+ */
 export async function lokiEarliestEventTime(
-  expr: string,
+  streamSelector: string,
   lookbackSeconds: number = 30 * 24 * 3600
 ): Promise<number | null> {
   const end = Math.floor(Date.now() / 1000);
   const start = end - lookbackSeconds;
+  const expr = `sum(count_over_time(${streamSelector}[1h]))`;
   const params = new URLSearchParams({
     query: expr,
     start: (start * 1e9).toString(),
     end: (end * 1e9).toString(),
-    limit: "1",
-    direction: "forward",
+    step: "3600",
   });
   const res = await fetch(`/api/loki/loki/api/v1/query_range?${params}`);
   if (!res.ok) throw new Error(`Loki error: ${res.status}`);
-  const json: LokiLogResponse = await res.json();
-  for (const stream of json.data.result) {
-    for (const [nsTimestamp] of stream.values) {
-      return Math.floor(Number(nsTimestamp) / 1e9);
+  const json: LokiResponse = await res.json();
+  let earliest: number | null = null;
+  for (const series of json.data.result) {
+    for (const [ts, val] of series.values) {
+      if (parseFloat(val) > 0) {
+        const t = Math.floor(Number(ts));
+        if (earliest === null || t < earliest) earliest = t;
+      }
     }
   }
-  return null;
+  return earliest;
 }
 
 /** Returns bucketed counts across [start, end] using `bins` buckets. */

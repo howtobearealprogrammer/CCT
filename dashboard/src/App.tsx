@@ -62,26 +62,26 @@ export default function App() {
     <div
       className="h-screen w-screen p-3 grid gap-3"
       style={{
-        gridTemplateRows: "56px 48px 80px 1fr 1fr 0.7fr",
+        gridTemplateRows: "48px 28px 80px 1fr 1fr 0.7fr",
         background: COLORS.bg,
       }}
     >
-      {/* Row 0: Timeline Scrubber */}
-      <TimelineScrubber
-        earliestSeconds={earliestSeconds}
-        rangeSeconds={rangeSeconds}
-        endSeconds={endSeconds}
-        onEndChange={setEndSeconds}
-        histogram={histogram}
-      />
-
-      {/* Row 1: Top Bar */}
+      {/* Row 0: Top Bar */}
       <TopBar
         rangeSeconds={rangeSeconds}
         onRangeChange={setRangeSeconds}
         refreshSeconds={refreshSeconds}
         onRefreshChange={setRefreshSeconds}
         isLive={!error && lastUpdated !== null && isLive}
+      />
+
+      {/* Row 1: Timeline Scrubber */}
+      <TimelineScrubber
+        earliestSeconds={earliestSeconds}
+        rangeSeconds={rangeSeconds}
+        endSeconds={endSeconds}
+        onEndChange={setEndSeconds}
+        histogram={histogram}
       />
 
       {/* Row 1: Stat Cards */}
