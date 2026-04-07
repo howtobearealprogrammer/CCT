@@ -117,7 +117,7 @@ export default function TimelineScrubber({
   }, [histogram, earliest, nowSeconds]);
 
   return (
-    <div className="flex items-center gap-3 px-1 h-full">
+    <div className="flex items-center gap-2 px-1 h-full w-full min-w-0">
       <span
         className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
           isLive
@@ -133,7 +133,7 @@ export default function TimelineScrubber({
       <div
         ref={trackRef}
         onClick={onTrackClick}
-        className="relative flex-1 h-[22px] rounded bg-white/[0.04] border border-white/[0.06] overflow-hidden cursor-pointer select-none"
+        className="relative flex-1 min-w-0 h-[22px] rounded bg-white/[0.04] border border-white/[0.06] overflow-hidden cursor-pointer select-none"
       >
         <ReactECharts
           option={chartOption}
