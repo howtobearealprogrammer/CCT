@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import type { TimeRangeOption, RefreshOption } from "../types";
 
 export const TIME_RANGES: TimeRangeOption[] = [
@@ -21,25 +21,37 @@ export const REFRESH_OPTIONS: RefreshOption[] = [
 export function useTimeRange() {
   const [rangeSeconds, setRangeSeconds] = useState(3600);
   const [refreshSeconds, setRefreshSeconds] = useState<number | null>(30);
+  // null = live (end follows now); number = frozen unix seconds
+  const [endSeconds, setEndSeconds] = useState<number | null>(null);
+
+  const isLive = endSeconds === null;
+
+  const jumpToNow = useCallback(() => setEndSeconds(null), []);
 
   const queryParams = useMemo(() => {
-    const end = Math.floor(Date.now() / 1000);
+    const end = endSeconds ?? Math.floor(Date.now() / 1000);
     const start = end - rangeSeconds;
     const step = Math.max(Math.floor(rangeSeconds / 100), 15);
     return { start, end, step };
-  }, [rangeSeconds]);
+  }, [rangeSeconds, endSeconds]);
+
+  const refreshQueryParams = useCallback(() => {
+    const end = endSeconds ?? Math.floor(Date.now() / 1000);
+    const start = end - rangeSeconds;
+    const step = Math.max(Math.floor(rangeSeconds / 100), 15);
+    return { start, end, step };
+  }, [rangeSeconds, endSeconds]);
 
   return {
     rangeSeconds,
     setRangeSeconds,
     refreshSeconds,
     setRefreshSeconds,
+    endSeconds,
+    setEndSeconds,
+    jumpToNow,
+    isLive,
     queryParams,
-    refreshQueryParams() {
-      const end = Math.floor(Date.now() / 1000);
-      const start = end - rangeSeconds;
-      const step = Math.max(Math.floor(rangeSeconds / 100), 15);
-      return { start, end, step };
-    },
+    refreshQueryParams,
   };
 }
