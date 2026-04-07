@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTimeRange } from "./hooks/useTimeRange";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useActivityHistogram } from "./hooks/useActivityHistogram";
@@ -27,6 +27,7 @@ export default function App() {
   const stableRefresh = useCallback(refreshQueryParams, [rangeSeconds, endSeconds]);
   const { data, error, lastUpdated } = useDashboardData(stableRefresh, refreshSeconds);
   const { earliestSeconds, histogram } = useActivityHistogram(30000);
+  const [timelineVisible, setTimelineVisible] = useState(false);
 
   // Compute time range bounds for x-axis pinning
   const timeRangeMs = useMemo(() => {
@@ -62,7 +63,9 @@ export default function App() {
     <div
       className="h-screen w-screen p-3 grid gap-3"
       style={{
-        gridTemplateRows: "48px 28px 80px 1fr 1fr 0.7fr",
+        gridTemplateRows: timelineVisible
+          ? "48px 28px 80px 1fr 1fr 0.7fr"
+          : "48px 80px 1fr 1fr 0.7fr",
         background: COLORS.bg,
       }}
     >
@@ -73,16 +76,20 @@ export default function App() {
         refreshSeconds={refreshSeconds}
         onRefreshChange={setRefreshSeconds}
         isLive={!error && lastUpdated !== null && isLive}
+        timelineVisible={timelineVisible}
+        onToggleTimeline={() => setTimelineVisible((v) => !v)}
       />
 
-      {/* Row 1: Timeline Scrubber */}
-      <TimelineScrubber
-        earliestSeconds={earliestSeconds}
-        rangeSeconds={rangeSeconds}
-        endSeconds={endSeconds}
-        onEndChange={setEndSeconds}
-        histogram={histogram}
-      />
+      {/* Row 1: Timeline Scrubber (toggleable) */}
+      {timelineVisible && (
+        <TimelineScrubber
+          earliestSeconds={earliestSeconds}
+          rangeSeconds={rangeSeconds}
+          endSeconds={endSeconds}
+          onEndChange={setEndSeconds}
+          histogram={histogram}
+        />
+      )}
 
       {/* Row 1: Stat Cards */}
       <div className="grid grid-cols-4 gap-3">

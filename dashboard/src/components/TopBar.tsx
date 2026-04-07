@@ -6,6 +6,8 @@ interface TopBarProps {
   refreshSeconds: number | null;
   onRefreshChange: (seconds: number | null) => void;
   isLive: boolean;
+  timelineVisible: boolean;
+  onToggleTimeline: () => void;
 }
 
 export default function TopBar({
@@ -14,6 +16,8 @@ export default function TopBar({
   refreshSeconds,
   onRefreshChange,
   isLive,
+  timelineVisible,
+  onToggleTimeline,
 }: TopBarProps) {
   return (
     <div className="flex items-center justify-between px-1">
@@ -32,6 +36,17 @@ export default function TopBar({
         </span>
       </div>
       <div className="flex items-center gap-2">
+        <button
+          onClick={onToggleTimeline}
+          title={timelineVisible ? "Hide timeline" : "Show timeline"}
+          className={`text-[11px] px-2 py-1 rounded border cursor-pointer ${
+            timelineVisible
+              ? "bg-[#5794F2]/15 border-[#5794F2]/40 text-[#5794F2]"
+              : "bg-white/[0.06] border-white/[0.08] text-[#8a94a6] hover:text-[#e2e8f0]"
+          }`}
+        >
+          Timeline
+        </button>
         <select
           value={rangeSeconds}
           onChange={(e) => onRangeChange(Number(e.target.value))}
