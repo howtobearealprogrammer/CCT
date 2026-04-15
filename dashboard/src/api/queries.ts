@@ -54,8 +54,11 @@ export async function fetchDashboardData(
   const [
     tokensByType,
     tokensByModel,
+    totalTokensAgg,
     linesOfCode,
+    totalLinesAgg,
     activeTime,
+    totalActiveAgg,
     toolCalls,
     actToolTotal,
     actToolSuccess,
@@ -75,11 +78,23 @@ export async function fetchDashboardData(
       start, end, step
     ),
     prometheusQueryRange(
+      `sum(increase(claude_code_token_usage_tokens_total[${range}]))`,
+      start, end, step
+    ),
+    prometheusQueryRange(
       `sum(increase(claude_code_lines_of_code_count_total[${step}s]))`,
       start, end, step
     ),
     prometheusQueryRange(
+      `sum(increase(claude_code_lines_of_code_count_total[${range}]))`,
+      start, end, step
+    ),
+    prometheusQueryRange(
       `sum(increase(claude_code_active_time_seconds_total[${step}s]))`,
+      start, end, step
+    ),
+    prometheusQueryRange(
+      `sum(increase(claude_code_active_time_seconds_total[${range}]))`,
       start, end, step
     ),
     lokiQueryRange(
@@ -134,6 +149,12 @@ export async function fetchDashboardData(
   const activeSeries = collapseToSingleSeries(activeTime);
   const commitsSeries = collapseToSingleSeries(commits);
 
+  // Extract aggregate values from full-range queries (avoids increase() undercounting with small windows)
+  const aggValue = (series: TimeSeries[]) => {
+    const collapsed = collapseToSingleSeries(series);
+    return collapsed.data.length > 0 ? Math.max(...collapsed.data.map((p) => p.value)) : 0;
+  };
+
   // Compute Act Success Rate
   const actTotalPie = seriesToPie(actToolTotal);
   const actSuccessPie = seriesToPie(actToolSuccess);
@@ -157,15 +178,15 @@ export async function fetchDashboardData(
 
   return {
     totalTokens: {
-      value: totalTokenSeries.data.reduce((s, p) => s + p.value, 0),
+      value: aggValue(totalTokensAgg),
       series: totalTokenSeries.data,
     },
     linesOfCode: {
-      value: linesSeries.data.reduce((s, p) => s + p.value, 0),
+      value: aggValue(totalLinesAgg),
       series: linesSeries.data,
     },
     activeTime: {
-      value: activeSeries.data.reduce((s, p) => s + p.value, 0),
+      value: aggValue(totalActiveAgg),
       series: activeSeries.data,
     },
     commits: {
