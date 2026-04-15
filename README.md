@@ -24,7 +24,7 @@ All services run as Docker containers on a shared Docker Compose network. Claude
 | `dashboard` | Custom (Nginx + Vite/React build) | 3002 | Primary dashboard — queries Prometheus and Loki directly |
 | ~~`grafana`~~ | ~~`grafana/grafana:11.6.0`~~ | ~~3001~~ | Commented out in docker-compose; re-enable for debugging |
 
-**Why port 3002 for the dashboard?** Port 3000 is used by the SimpleClub API server; port 3001 was previously used by Grafana.
+**Dashboard port:** Defaults to port 3000. Change the port mapping in `docker-compose.yml` if 3000 is already in use on your machine.
 
 **Why the `-contrib` OTel image?** The base `otel/opentelemetry-collector` image does not include the Prometheus exporter. The `-contrib` variant is required.
 
@@ -34,7 +34,7 @@ All services run as Docker containers on a shared Docker Compose network. Claude
 - **Prometheus UI**: http://localhost:9090
 - **Prometheus Targets**: http://localhost:9090/targets (both should show "UP")
 - **Loki**: http://localhost:3100 (direct API at `/loki/api/v1/query`)
-- ~~**Grafana**: http://localhost:3001~~ — commented out in docker-compose; re-enable for debugging (username: `admin`, password has been changed from default)
+- ~~**Grafana**: http://localhost:3001~~ — commented out in docker-compose; re-enable for debugging (default credentials: `admin`/`admin`)
 
 ## Custom Dashboard
 
@@ -533,17 +533,6 @@ Typical idle/light-use memory footprint (single user):
 | **Total** | **~105 MiB** |
 
 Grafana (~75 MiB) is commented out; re-enable it for debugging if needed.
-
-## MCP Servers
-
-The following MCP servers are configured at user scope (`~/.claude.json`) for browser automation and debugging:
-
-| Server | Command | Purpose |
-|--------|---------|---------|
-| `playwright` | `npx @playwright/mcp@latest` | Browser automation via structured accessibility snapshots (61 tools) |
-| `chrome-devtools` | `npx chrome-devtools-mcp@latest` | Chrome DevTools access — performance traces, network inspection, Lighthouse audits (29 tools) |
-
-Additionally, the **Claude in Chrome** first-party integration is available via `claude --chrome` or `/chrome` (requires the [Claude in Chrome extension](https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn)).
 
 ## References
 

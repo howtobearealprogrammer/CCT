@@ -89,12 +89,12 @@ done
 
 ### 2.1 Ask the user where they want the repo
 
-Suggest the default: `~/Repos/claude-code-monitoring`. If they want a different path, use that throughout.
+Suggest the default: `~/claude-code-monitoring`. If they want a different path, use that throughout.
 
 ### 2.2 Clone
 
 ```bash
-git clone https://github.com/howtobearealprogrammer/CCT.git ~/Repos/claude-code-monitoring
+git clone <repo-url> ~/claude-code-monitoring
 ```
 
 Replace the URL and path with actuals if different.
@@ -102,7 +102,7 @@ Replace the URL and path with actuals if different.
 ### 2.3 Verify
 
 ```bash
-ls ~/Repos/claude-code-monitoring/docker-compose.yml
+ls ~/claude-code-monitoring/docker-compose.yml
 ```
 
 Must exist. If it doesn't, the clone failed.
@@ -126,16 +126,16 @@ Edit `docker-compose.yml` in the repo. Find the `dashboard` service's `ports` ma
       - "<chosen-port>:80"
 ```
 
-The file currently has `"3002:80"` — change the left side to whatever port the user chose.
+The file currently has `"3000:80"` — change the left side to whatever port the user chose.
 
 ### 3.3 If they choose port 3000 (default)
 
-Edit `docker-compose.yml` — change `"3002:80"` to `"3000:80"`.
+No changes needed — `docker-compose.yml` already ships with `"3000:80"`.
 
 ### 3.4 Verify
 
 ```bash
-grep -A2 'ports:' ~/Repos/claude-code-monitoring/docker-compose.yml | grep '80"'
+grep -A2 'ports:' ~/claude-code-monitoring/docker-compose.yml | grep '80"'
 ```
 
 Should show the correct port mapping.
@@ -147,7 +147,7 @@ Should show the correct port mapping.
 ### 4.1 Build and launch
 
 ```bash
-cd ~/Repos/claude-code-monitoring && docker compose up -d
+cd ~/claude-code-monitoring && docker compose up -d
 ```
 
 This pulls images and builds the dashboard container. First run takes 1-3 minutes depending on internet speed. The build step runs `npm ci` and `vite build` inside the container.
@@ -207,7 +207,7 @@ sudo systemctl enable docker
 This ensures the stack auto-restarts after a reboot (all containers have `restart: unless-stopped`).
 
 Note: This requires `sudo`. Ask the user before running. If they decline, tell them:
-> "The monitoring stack won't auto-start after a reboot. You'll need to run `cd ~/Repos/claude-code-monitoring && docker compose up -d` manually."
+> "The monitoring stack won't auto-start after a reboot. You'll need to run `cd ~/claude-code-monitoring && docker compose up -d` manually."
 
 ---
 
@@ -300,7 +300,7 @@ Wait for the user to interact with Claude Code for a minute or two, then verify 
 
 ```bash
 # Check OTel Collector is receiving data
-docker compose -f ~/Repos/claude-code-monitoring/docker-compose.yml logs otel-collector --tail=10 2>&1 | grep -c "LogsExporter"
+docker compose -f ~/claude-code-monitoring/docker-compose.yml logs otel-collector --tail=10 2>&1 | grep -c "LogsExporter"
 
 # Check Prometheus has Claude Code metrics
 curl -s 'http://localhost:9090/api/v1/query?query=claude_code_session_count_total' | python3 -c "
@@ -343,16 +343,16 @@ If the user reports issues after setup, run through these checks:
 
 ### No data in dashboard
 
-1. **Is the stack running?** `docker compose -f ~/Repos/claude-code-monitoring/docker-compose.yml ps`
+1. **Is the stack running?** `docker compose -f ~/claude-code-monitoring/docker-compose.yml ps`
 2. **Did they start a NEW session?** Settings only apply to sessions started after the config change.
-3. **Is the OTel Collector receiving data?** `docker compose -f ~/Repos/claude-code-monitoring/docker-compose.yml logs otel-collector --tail=20` — look for `LogsExporter` or `MetricsExporter` lines.
+3. **Is the OTel Collector receiving data?** `docker compose -f ~/claude-code-monitoring/docker-compose.yml logs otel-collector --tail=20` — look for `LogsExporter` or `MetricsExporter` lines.
 4. **Is Prometheus scraping?** Visit `http://localhost:9090/targets` — both targets should show `UP`.
 5. **Is the endpoint correct?** `grep OTEL_EXPORTER_OTLP_ENDPOINT ~/.claude/settings.json` — must be `http://localhost:4317` (not `https`).
 
 ### Dashboard shows errors or won't load
 
 1. **Container running?** `docker ps | grep dashboard`
-2. **Nginx logs:** `docker compose -f ~/Repos/claude-code-monitoring/docker-compose.yml logs dashboard --tail=20`
+2. **Nginx logs:** `docker compose -f ~/claude-code-monitoring/docker-compose.yml logs dashboard --tail=20`
 3. **Can the dashboard reach Prometheus/Loki?** The Nginx reverse proxy resolves `prometheus` and `loki` by Docker DNS. If those containers are down, API calls fail.
 
 ### Port conflicts after setup
@@ -403,7 +403,7 @@ After completing this guide, the user has:
 ### Managing the stack
 
 ```bash
-cd ~/Repos/claude-code-monitoring
+cd ~/claude-code-monitoring
 
 # Stop
 docker compose down

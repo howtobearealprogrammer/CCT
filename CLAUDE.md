@@ -64,7 +64,6 @@ Consistent color identity throughout the dashboard:
 
 ## Stack Notes
 
-- Port 3000 is used by another local service (SimpleClub API)
-- Port 3001 is Grafana (commented out in docker-compose)
-- Port 3002 is the custom dashboard
+- Port 3000 is the custom dashboard (default)
+- Port 3001 is reserved for Grafana (commented out in docker-compose, re-enable for debugging)
 - Loki structured metadata fields (`event_name`, `tool_name`, etc.) are NOT stream labels — query with filter pipeline, not label matchers
