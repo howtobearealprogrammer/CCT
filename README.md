@@ -122,6 +122,8 @@ These env vars only take effect for Claude Code sessions started **after** the s
 
 Claude Code emits these metrics via OpenTelemetry. The OTel Collector's Prometheus exporter converts dots to underscores in metric names.
 
+> **Note:** This section documents what we've observed in our stack. For the canonical and up-to-date telemetry specification, always check [Anthropic's official Claude Code telemetry documentation](https://docs.anthropic.com/en/docs/claude-code/monitoring). Fields, events, and attributes may be added or changed upstream without notice.
+
 ### Counter Metrics (Prometheus)
 
 | OTel Name | Prometheus Name | Description | Key Attributes |
@@ -133,7 +135,7 @@ Claude Code emits these metrics via OpenTelemetry. The OTel Collector's Promethe
 | `claude_code.commit.count` | `claude_code_commit_count_total` | Git commits created | — |
 | `claude_code.pull_request.count` | `claude_code_pull_request_count_total` | PRs created | — |
 | `claude_code.active_time.total` | `claude_code_active_time_total_seconds_total` | Active time in seconds | `type` (user, cli) |
-| `claude_code.code_edit_tool.decision` | `claude_code_code_edit_tool_decision_total` | Tool permission decisions | `tool_name`, `decision`, `source` |
+| `claude_code.code_edit_tool.decision` | `claude_code_code_edit_tool_decision_total` | Tool permission decisions | `tool_name`, `decision`, `source`, `language` |
 
 **Note on `commit.count`:** The Prometheus counter `claude_code_commit_count_total` only increments through Claude Code's internal commit tracking, which does not fire for commits made via the Bash tool (`git commit`). Since all commits in this workflow are made through Bash, the v2 dashboard uses a Loki-based query instead (see [Commits Panel](#commits-panel-loki-based)).
 
@@ -143,11 +145,24 @@ These are stored in Loki and queryable in Grafana. OTLP resource attributes (e.g
 
 | Event | Description | Key Fields |
 |-------|-------------|------------|
-| `claude_code.user_prompt` | User prompt submitted | `prompt_length` |
-| `claude_code.tool_result` | Tool execution completed | `tool_name`, `success`, `duration_ms`, `tool_input`, `tool_parameters` |
-| `claude_code.api_request` | API call to Claude | `model`, `cost_usd`, `duration_ms`, token counts |
-| `claude_code.api_error` | API call failed | `error`, `status_code`, `duration_ms` |
+| `claude_code.user_prompt` | User prompt submitted | `prompt_length`, `prompt` (opt-in via `OTEL_LOG_USER_PROMPTS=1`), `prompt.id` |
+| `claude_code.tool_result` | Tool execution completed | `tool_name`, `success`, `duration_ms`, `decision_type`, `decision_source`, `tool_result_size_bytes`, `tool_input`, `tool_parameters` (detail fields opt-in via `OTEL_LOG_TOOL_DETAILS=1`) |
+| `claude_code.api_request` | API call to Claude | `model`, `cost_usd`, `duration_ms`, `speed`, token counts (input, output, cache) |
+| `claude_code.api_error` | API call failed | `model`, `error`, `status_code`, `duration_ms`, `attempt`, `speed` |
 | `claude_code.tool_decision` | Tool permission decision | `tool_name`, `decision`, `source` |
+
+All events include a `prompt.id` UUID that correlates every event triggered by a single user prompt.
+
+**Hook visibility:** There is no dedicated hook execution event. However, the `decision_source` field on `tool_result` and `tool_decision` events (and `source` on the `code_edit_tool.decision` metric) can be `"hook"`, indicating a hook was responsible for the accept/reject decision.
+
+### Opt-in Environment Variables
+
+| Variable | What It Unlocks |
+|----------|----------------|
+| `OTEL_LOG_USER_PROMPTS=1` | Prompt text in `user_prompt` events |
+| `OTEL_LOG_TOOL_DETAILS=1` | Bash commands, MCP/skill names, file paths in `tool_result` |
+| `OTEL_LOG_TOOL_CONTENT=1` | Full tool input/output in trace spans (requires traces beta) |
+| `CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1` | Distributed traces (spans) |
 
 ### Important: `tool_input` vs `tool_parameters`
 
@@ -161,8 +176,11 @@ The `tool_parameters` field is more reliable for detecting specific outcomes (e.
 ### Standard Attributes on All Events
 
 - `session.id` — unique per CLI session
+- `app.version` — Claude Code version
 - `organization.id` — Anthropic org
 - `user.account_uuid` — account identifier
+- `user.account_id` — account ID
+- `user.id` — user ID
 - `user.email` — authenticated email
 - `terminal.type` — terminal emulator (e.g., vscode, tmux)
 - `os.type`, `os.version`, `host.arch` — system info
