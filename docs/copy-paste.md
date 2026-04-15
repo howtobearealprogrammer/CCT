@@ -94,7 +94,7 @@ Suggest the default: `~/Repos/claude-code-monitoring`. If they want a different 
 ### 2.2 Clone
 
 ```bash
-git clone https://github.com/danvds/claude-code-monitoring.git ~/Repos/claude-code-monitoring
+git clone https://github.com/howtobearealprogrammer/CCT.git ~/Repos/claude-code-monitoring
 ```
 
 Replace the URL and path with actuals if different.
