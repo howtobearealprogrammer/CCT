@@ -68,6 +68,10 @@ export async function fetchDashboardData(
     totalAgentCalls,
     commits,
     userPromptTimestamps,
+    costSeries,
+    totalCostAgg,
+    costByModel,
+    tokensBySource,
   ] = await Promise.all([
     prometheusQueryRange(
       `sum by (type)(increase(claude_code_token_usage_tokens_total[${step}s]))`,
@@ -133,6 +137,22 @@ export async function fetchDashboardData(
       `${SERVICE} | event_name="user_prompt"`,
       start, end
     ),
+    prometheusQueryRange(
+      `sum(increase(claude_code_cost_usage_USD_total[${step}s]))`,
+      start, end, step
+    ),
+    prometheusQueryRange(
+      `sum(increase(claude_code_cost_usage_USD_total[${range}]))`,
+      start, end, step
+    ),
+    prometheusQueryRange(
+      `sum by (model)(increase(claude_code_cost_usage_USD_total[${range}]))`,
+      start, end, step
+    ),
+    prometheusQueryRange(
+      `sum by (query_source)(increase(claude_code_token_usage_tokens_total[${range}]))`,
+      start, end, step
+    ),
   ]);
 
   const typedAgentPie = seriesToPie(agentTypes);
@@ -148,6 +168,7 @@ export async function fetchDashboardData(
   const linesSeries = collapseToSingleSeries(linesOfCode);
   const activeSeries = collapseToSingleSeries(activeTime);
   const commitsSeries = collapseToSingleSeries(commits);
+  const costSparkSeries = collapseToSingleSeries(costSeries);
 
   // Extract aggregate values from full-range queries (avoids increase() undercounting with small windows)
   const aggValue = (series: TimeSeries[]) => {
@@ -193,9 +214,15 @@ export async function fetchDashboardData(
       value: commitsSeries.data.reduce((s, p) => s + p.value, 0),
       series: commitsSeries.data,
     },
+    cost: {
+      value: aggValue(totalCostAgg),
+      series: costSparkSeries.data,
+    },
     tokenUsageOverTime: tokensByType,
     tokensByType: seriesToPie(tokensByType),
     tokensByModel: seriesToPie(tokensByModel),
+    costByModel: seriesToPie(costByModel),
+    tokensBySource: seriesToPie(tokensBySource),
     toolCallsOverTime: topN(toolCalls, 8),
     toolDistribution: seriesToPie(toolCalls).slice(0, 6),
     actSuccess: actSuccessData,

@@ -13,12 +13,14 @@ processors:
   memory_limiter:
     check_interval: 1s
     limit_mib: 512
+  deltatocumulative:
+    max_stale: 24h
 
 exporters:
   prometheus:
     endpoint: "0.0.0.0:8889"
     send_timestamps: true
-    metric_expiration: 180m
+    metric_expiration: 24h
     enable_open_metrics: true
   otlphttp/loki:
     endpoint: http://loki:3100/otlp
@@ -36,7 +38,7 @@ service:
   pipelines:
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [memory_limiter, deltatocumulative, batch]
       exporters: [prometheus, debug]
     logs:
       receivers: [otlp]

@@ -13,3 +13,9 @@ export function formatDuration(seconds: number): { value: string; suffix: string
 export function formatPercent(ratio: number): string {
   return `${Math.round(ratio * 100)}%`;
 }
+
+export function formatCost(usd: number): { value: string; suffix: string } {
+  if (usd >= 1000) return { value: `$${(usd / 1000).toFixed(1)}K`, suffix: "" };
+  if (usd >= 100) return { value: `$${usd.toFixed(1)}`, suffix: "" };
+  return { value: `$${usd.toFixed(2)}`, suffix: "" };
+}

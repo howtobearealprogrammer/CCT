@@ -6,13 +6,13 @@ Local observability stack for tracking Claude Code usage metrics on this machine
 
 ```
                                                           ┌──Prometheus export──▶ Prometheus ──▶ Custom Dashboard
-Claude Code (host) ──OTLP/gRPC──▶ OpenTelemetry Collector─┤                      :9090       ↗  :3002
+Claude Code (host) ──OTLP/gRPC──▶ OpenTelemetry Collector─┤                      :9090       ↗  :4000
                                    :4317 (gRPC)            └──OTLP/HTTP────────▶ Loki ───────
                                    :4318 (HTTP)                                  :3100
                                    :8889 (metrics)
 ```
 
-All services run as Docker containers on a shared Docker Compose network. Claude Code runs on the host and sends telemetry to the OTel Collector via the mapped gRPC port (`localhost:4317`). Metrics go to Prometheus; event logs (tool use, API requests, prompts) go to Loki. The custom dashboard at `:3002` queries both Prometheus and Loki directly via an Nginx reverse proxy.
+All services run as Docker containers on a shared Docker Compose network. Claude Code runs on the host and sends telemetry to the OTel Collector via the mapped gRPC port (`localhost:4317`). Metrics go to Prometheus; event logs (tool use, API requests, prompts) go to Loki. The custom dashboard at `:4000` queries both Prometheus and Loki directly via an Nginx reverse proxy.
 
 ## Services
 
@@ -21,16 +21,16 @@ All services run as Docker containers on a shared Docker Compose network. Claude
 | `otel-collector` | `otel/opentelemetry-collector-contrib:0.120.0` | 4317, 4318, 8889 | Receives OTLP telemetry from Claude Code, exports metrics to Prometheus and logs to Loki |
 | `prometheus` | `prom/prometheus:v3.3.0` | 9090 | Scrapes and stores time-series metrics (30-day retention) |
 | `loki` | `grafana/loki:3.4.2` | 3100 | Stores event logs (tool use, API requests, prompts) via OTLP ingestion |
-| `dashboard` | Custom (Nginx + Vite/React build) | 3002 | Primary dashboard — queries Prometheus and Loki directly |
+| `dashboard` | Custom (Nginx + Vite/React build) | 4000 | Primary dashboard — queries Prometheus and Loki directly |
 | ~~`grafana`~~ | ~~`grafana/grafana:11.6.0`~~ | ~~3001~~ | Commented out in docker-compose; re-enable for debugging |
 
-**Dashboard port:** Defaults to port 3000. Change the port mapping in `docker-compose.yml` if 3000 is already in use on your machine.
+**Dashboard port:** Defaults to port 4000 (chosen to stay out of the way of common dev servers on 3000/3001/3002). Change the port mapping in `docker-compose.yml` if 4000 is already in use on your machine.
 
 **Why the `-contrib` OTel image?** The base `otel/opentelemetry-collector` image does not include the Prometheus exporter. The `-contrib` variant is required.
 
 ## Access
 
-- **Custom Dashboard**: http://localhost:3002 (primary frontend)
+- **Custom Dashboard**: http://localhost:4000 (primary frontend)
 - **Prometheus UI**: http://localhost:9090
 - **Prometheus Targets**: http://localhost:9090/targets (both should show "UP")
 - **Loki**: http://localhost:3100 (direct API at `/loki/api/v1/query`)
@@ -38,7 +38,7 @@ All services run as Docker containers on a shared Docker Compose network. Claude
 
 ## Custom Dashboard
 
-The primary frontend is a custom web app served at http://localhost:3002. It is built with **Vite + React + ECharts + Tailwind CSS** and served by **Nginx**, which also acts as a reverse proxy for the Prometheus and Loki APIs so the browser never needs direct access to those ports.
+The primary frontend is a custom web app served at http://localhost:4000. It is built with **Vite + React + ECharts + Tailwind CSS** and served by **Nginx**, which also acts as a reverse proxy for the Prometheus and Loki APIs so the browser never needs direct access to those ports.
 
 **Design:** Deep navy dark theme with glassmorphism cards. Animated transitions when data updates or the time range changes.
 
@@ -355,7 +355,7 @@ claude-code-monitoring/
 ├── otel-collector-config.yaml         # OTLP receivers, processors, exporters
 ├── prometheus.yml                     # Scrape targets and intervals
 ├── README.md                          # This file
-├── dashboard/                         # Custom React dashboard (primary frontend, :3002)
+├── dashboard/                         # Custom React dashboard (primary frontend, :4000)
 │   ├── Dockerfile                     # Builds Vite app, packages with Nginx
 │   ├── nginx.conf                     # Nginx config: static serving + API reverse proxy
 │   ├── vite.config.ts                 # Vite build config
@@ -378,14 +378,15 @@ claude-code-monitoring/
 ```
 Receivers           Processors              Exporters
 ─────────           ──────────              ─────────
-OTLP (gRPC)  ──▶   memory_limiter  ──▶     prometheus (metrics → :8889)
-OTLP (HTTP)         batch                   otlphttp/loki (logs → Loki :3100/otlp)
-                                            debug (metrics + logs → stdout)
+OTLP (gRPC)  ──▶   memory_limiter   ──▶    prometheus (metrics → :8889)
+OTLP (HTTP)         deltatocumulative      otlphttp/loki (logs → Loki :3100/otlp)
+                    batch                   debug (metrics + logs → stdout)
 ```
 
 - **memory_limiter**: Caps collector memory at 512 MiB (safety valve, typical usage is ~30 MiB)
+- **deltatocumulative**: Converts OTel delta-temporality counters (Claude Code emits delta) into cumulative counters that the Prometheus exporter expects. Without this, raw counter time series exhibit mid-session resets that can confuse downstream queries.
 - **batch**: Batches telemetry (1s timeout, 1024 batch size) to reduce export overhead
-- **prometheus exporter**: Converts OTLP metrics to Prometheus format, metrics expire after 180 minutes of no updates
+- **prometheus exporter**: Converts OTLP metrics to Prometheus format, metrics expire after 24 hours of no updates
 - **otlphttp/loki exporter**: Sends OTLP logs to Loki's native OTLP ingestion endpoint; resource attributes become stream labels, log record attributes become structured metadata
 - **debug exporter**: Logs all received telemetry to stdout for troubleshooting (`docker compose logs otel-collector`)
 

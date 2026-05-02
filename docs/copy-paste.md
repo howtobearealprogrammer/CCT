@@ -13,7 +13,7 @@ Claude Code (host) ──OTLP/gRPC──▶ OTel Collector ──▶ Prometheus 
                                                       :3100
                                                   
 Custom Dashboard ◀── queries both via Nginx reverse proxy
-:3000 (default)
+:4000 (default)
 ```
 
 Four Docker containers. ~105 MiB total memory. Zero credentials or API keys required.
@@ -67,10 +67,10 @@ git --version
 
 ### 1.5 Port availability
 
-Check these ports are free: 4317, 4318, 8889, 9090, 3100, 3000.
+Check these ports are free: 4317, 4318, 8889, 9090, 3100, 4000.
 
 ```bash
-for port in 4317 4318 8889 9090 3100 3000; do
+for port in 4317 4318 8889 9090 3100 4000; do
   if ss -tlnp 2>/dev/null | grep -q ":${port} "; then
     echo "CONFLICT: port ${port} is in use"
   else
@@ -81,7 +81,7 @@ done
 
 **If any port shows CONFLICT:**
 - Ports 4317, 4318, 8889, 9090, 3100 are required by the backend services — if occupied, identify what's using them (`ss -tlnp | grep :<port>`) and tell the user they need to free them.
-- Port 3000 is the default dashboard port but is configurable — note the conflict and handle it in Section 3.
+- Port 4000 is the default dashboard port but is configurable — note the conflict and handle it in Section 3.
 
 ---
 
@@ -113,11 +113,11 @@ Must exist. If it doesn't, the clone failed.
 
 ### 3.1 Ask the user
 
-> "The dashboard defaults to port 3000. Would you like to use a different port? (Common alternatives: 3001, 3002, 8080)"
+> "The dashboard defaults to port 4000. Would you like to use a different port? (Common alternatives: 3000, 3001, 3002, 8080)"
 
-If a port 3000 conflict was detected in Section 1.5, mention it here.
+If a port 4000 conflict was detected in Section 1.5, mention it here.
 
-### 3.2 If they choose a port other than 3000
+### 3.2 If they choose a port other than 4000
 
 Edit `docker-compose.yml` in the repo. Find the `dashboard` service's `ports` mapping and change it:
 
@@ -126,11 +126,11 @@ Edit `docker-compose.yml` in the repo. Find the `dashboard` service's `ports` ma
       - "<chosen-port>:80"
 ```
 
-The file currently has `"3000:80"` — change the left side to whatever port the user chose.
+The file currently has `"4000:80"` — change the left side to whatever port the user chose.
 
-### 3.3 If they choose port 3000 (default)
+### 3.3 If they choose port 4000 (default)
 
-No changes needed — `docker-compose.yml` already ships with `"3000:80"`.
+No changes needed — `docker-compose.yml` already ships with `"4000:80"`.
 
 ### 3.4 Verify
 
@@ -496,3 +496,21 @@ Start a new Claude Code session and type `/caveman`. Claude should switch to com
 #### Add to CLAUDE.md
 
 After installation, append the Caveman usage guide to the project's `CLAUDE.md`. The insert text is at `docs/claude-md-caveman-insert.md` in this repo — copy its contents and append to `CLAUDE.md`.
+
+---
+
+## Section 9: Recommended CLAUDE.md Inserts (Unconditional)
+
+These inserts are project-agnostic and apply regardless of which plugins the user has installed. Offer them after Sections 1-6 are verified — the user can append any subset to their existing project `CLAUDE.md` files.
+
+### 9.1 Session Discipline — Cost-Efficient Output Maximization
+
+A short set of model-selection norms (Opus / Sonnet / Haiku roles), phase rhythm (Plan → Execute → Verify), anti-patterns to avoid, and dashboard signals to watch. Distilled from observed Max 5x session telemetry.
+
+**Why it pairs well with CCT:** The dashboard surfaces Cost (USD), Tokens by Source (main / subagent / auxiliary), and Agent Types. Without guidance on what those numbers *should* look like, the panels are decoration. This insert turns them into actionable thresholds (e.g. "Opus share > ~30% of cost = too much rote work on the expensive model").
+
+**Why it stands alone:** The model-selection table and phase rhythm work even on a machine without CCT — the dashboard signals section is clearly marked "if CCT is installed" and degrades gracefully.
+
+#### Add to CLAUDE.md
+
+Append the contents of `docs/claude-md-session-discipline-insert.md` (in this repo) to the project's `CLAUDE.md`. No install step — it's pure prose guidance. Recommend appending near the top of the project's "Development Workflow" section if one exists, otherwise as a standalone H2 section.

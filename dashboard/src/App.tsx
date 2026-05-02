@@ -9,8 +9,8 @@ import ChartCard from "./components/ChartCard";
 import AreaChart from "./components/AreaChart";
 import RingGauge from "./components/RingGauge";
 import HorizontalBar from "./components/HorizontalBar";
-import { COLORS, TOKEN_TYPE_COLORS, ACT_TOOL_COLORS, AGENT_TYPE_COLORS, colorForModel } from "./utils/colors";
-import { formatNumber, formatDuration } from "./utils/formatters";
+import { COLORS, TOKEN_TYPE_COLORS, ACT_TOOL_COLORS, AGENT_TYPE_COLORS, QUERY_SOURCE_COLORS, colorForModel } from "./utils/colors";
+import { formatNumber, formatDuration, formatCost } from "./utils/formatters";
 
 export default function App() {
   const {
@@ -40,6 +40,7 @@ export default function App() {
   const lines = data ? formatNumber(data.linesOfCode.value) : { value: "—", suffix: "" };
   const active = data ? formatDuration(data.activeTime.value) : { value: "—", suffix: "" };
   const commitCount = data ? formatNumber(data.commits.value) : { value: "—", suffix: "" };
+  const cost = data ? formatCost(data.cost.value) : { value: "—", suffix: "" };
 
   // Build model color map from data
   const modelColorMap: Record<string, string> = {};
@@ -92,15 +93,16 @@ export default function App() {
       )}
 
       {/* Row 1: Stat Cards */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-5 gap-3">
         <StatCard label="Total Tokens" value={tokens.value} suffix={tokens.suffix} color={COLORS.blue} sparklineData={data?.totalTokens.series ?? []} />
         <StatCard label="Lines of Code" value={lines.value} suffix={lines.suffix} color={COLORS.green} sparklineData={data?.linesOfCode.series ?? []} />
         <StatCard label="Active Time" value={active.value} suffix={active.suffix} color={COLORS.purple} sparklineData={data?.activeTime.series ?? []} />
         <StatCard label="Commits" value={commitCount.value} suffix={commitCount.suffix} color={COLORS.amber} sparklineData={data?.commits.series ?? []} sparklineType="bar" />
+        <StatCard label="Cost (USD)" value={cost.value} suffix={cost.suffix} color={COLORS.teal} sparklineData={data?.cost.series ?? []} />
       </div>
 
       {/* Row 2: Token Story */}
-      <div className="grid gap-3" style={{ gridTemplateColumns: "2fr 1fr" }}>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "2fr 1fr 1fr" }}>
         <ChartCard title="Token Usage Over Time">
           <AreaChart
             series={data?.tokenUsageOverTime ?? []}
@@ -111,11 +113,19 @@ export default function App() {
           />
         </ChartCard>
         <div className="grid gap-3 grid-rows-2">
-          <ChartCard title="Token Usage by Type">
+          <ChartCard title="Tokens by Type">
             <RingGauge data={data?.tokensByType ?? []} colorMap={TOKEN_TYPE_COLORS} />
           </ChartCard>
+          <ChartCard title="Tokens by Source">
+            <RingGauge data={data?.tokensBySource ?? []} colorMap={QUERY_SOURCE_COLORS} />
+          </ChartCard>
+        </div>
+        <div className="grid gap-3 grid-rows-2">
           <ChartCard title="Tokens by Model">
             <RingGauge data={data?.tokensByModel ?? []} colorMap={modelColorMap} />
+          </ChartCard>
+          <ChartCard title="Cost by Model">
+            <RingGauge data={data?.costByModel ?? []} colorMap={modelColorMap} />
           </ChartCard>
         </div>
       </div>

@@ -28,9 +28,12 @@ export interface DashboardData {
   linesOfCode: { value: number; series: TimeSeriesPoint[] };
   activeTime: { value: number; series: TimeSeriesPoint[] };
   commits: { value: number; series: TimeSeriesPoint[] };
+  cost: { value: number; series: TimeSeriesPoint[] };
   tokenUsageOverTime: TimeSeries[];
   tokensByType: PieSlice[];
   tokensByModel: PieSlice[];
+  costByModel: PieSlice[];
+  tokensBySource: PieSlice[];
   toolCallsOverTime: TimeSeries[];
   toolDistribution: PieSlice[];
   actSuccess: {

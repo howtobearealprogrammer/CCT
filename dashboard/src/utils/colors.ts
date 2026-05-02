@@ -49,6 +49,12 @@ export const AGENT_TYPE_COLORS: Record<string, string> = {
   Plan: COLORS.purple,
 };
 
+export const QUERY_SOURCE_COLORS: Record<string, string> = {
+  main: COLORS.amber,
+  subagent: COLORS.teal,
+  auxiliary: COLORS.purple,
+};
+
 export function colorForModel(model: string): string {
   if (model.includes("opus")) return MODEL_COLORS.opus!;
   if (model.includes("haiku")) return MODEL_COLORS.haiku!;

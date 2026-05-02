@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    port: 3002,
+    port: 4000,
     proxy: {
       "/api/prometheus": {
         target: "http://localhost:9090",
